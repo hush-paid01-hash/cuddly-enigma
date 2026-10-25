@@ -1,0 +1,33 @@
+type: object
+xml:
+  name: Response
+properties:
+  TransmissionResults:
+    type: string
+    description: Lists error codes from any errors caused by the most recent request as a whole.
+  TransmissionReference:
+    type: string
+    description: A pass-through of the input TransmissionReference field.
+  Version:
+    type: string
+    description: The current service version number.
+  TotalRecords:
+    type: string
+    description: Total number of records.
+  Records:
+    type: array
+    xml:
+      wrapped: true
+    items:
+      $ref: '#/components/schemas/ResponseRecord'
+example:
+  TransmissionResults: ""
+  TransmissionReference: ""
+  Version: "6.2.0.1028"
+  TotalRecords: "1"
+  Records:
+    - RecordID: "1"
+      SSN: "203604897"
+      IssuingState: "NEW JERSEY"
+      Results: "SN07"
+      ResultsFromDataSource: "TU01"
