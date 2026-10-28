@@ -1,36 +1,29 @@
-# hush-bank
+# Launchpad
 
-Modern AI-powered digital banking platform.
+A responsive website launcher built with React, TypeScript, and Vite. Instagram, Facebook, YouTube, LinkedIn, Pinterest, and Reddit open their real websites in new tabs. No account or backend configuration is required.
+
+Search websites, filter by category, or add your own HTTP/HTTPS links. Addresses without a scheme default to HTTPS. Personal links are saved only in the current browser using local storage and can be removed from My links. Every destination uses a regular link with `target="_blank"` and `rel="noopener noreferrer"`.
 
 ## Development
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
-2. Start the dev server:
-   ```bash
-   npm run dev
-   ```
-3. Build for production:
-   ```bash
-   npm run build
-   ```
+Use Node.js 22.18 or newer.
+
+```bash
+npm ci
+npm run dev
+```
+
+## Verification and production build
+
+```bash
+npm test
+npm run lint
+npm run build
+npm run preview
+```
 
 ## AWS deployment
 
-This repository includes `/home/runner/work/hush-bank/hush-bank/.github/workflows/aws.yml` to build the Vite app and deploy the `dist/` output to Amazon S3 from GitHub Actions.
+The workflow in `.github/workflows/aws.yml` builds the static site and deploys `dist/` to Amazon S3 on pushes to `main` or `master`, or via `workflow_dispatch`.
 
-Configure these GitHub repository variables before enabling the workflow:
-
-- `AWS_REGION`: AWS region for deployment
-- `AWS_S3_BUCKET`: destination S3 bucket name
-- `CLOUDFRONT_DISTRIBUTION_ID` (optional): CloudFront distribution to invalidate after deployment
-
-Configure these GitHub repository secrets:
-
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
-- either `AWS_ROLE_TO_ASSUME` for OIDC authentication, or both `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`
-
-The workflow deploys on pushes to `main` or `master`, and it also supports manual runs with `workflow_dispatch`.
+Set repository variables `AWS_REGION` and `AWS_S3_BUCKET`. Optionally set `CLOUDFRONT_DISTRIBUTION_ID` to invalidate a distribution after deployment. Configure the `AWS_ROLE_TO_ASSUME` secret for OIDC authentication, or both `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
