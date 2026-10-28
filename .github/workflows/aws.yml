@@ -32,7 +32,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Validate deployment configuration
@@ -46,13 +46,6 @@ jobs:
             fi
           done
 
-          for secret_name in VITE_SUPABASE_URL VITE_SUPABASE_ANON_KEY; do
-            if [ -z "${!secret_name}" ]; then
-              echo "::error::Missing required repository secret: $secret_name"
-              missing=true
-            fi
-          done
-
           if [ -z "$AWS_ROLE_TO_ASSUME" ] && { [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; }; then
             echo "::error::Configure either AWS_ROLE_TO_ASSUME or both AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY secrets"
             missing=true
@@ -62,8 +55,6 @@ jobs:
             exit 1
           fi
         env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -73,9 +64,6 @@ jobs:
 
       - name: Build app
         run: npm run build
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Configure AWS credentials with OIDC
         if: ${{ secrets.AWS_ROLE_TO_ASSUME != '' }}

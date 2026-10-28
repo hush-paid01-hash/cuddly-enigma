@@ -1,367 +1,392 @@
-import { useMemo, useState, useEffect } from 'react';
-import { AccountSummary } from './components/AccountSummary';
-import { SpendingTrends } from './components/SpendingTrends';
-import { RecentTransactions } from './components/RecentTransactions';
-import { SavingsGoals } from './components/SavingsGoals';
-import { QuickActions } from './components/QuickActions';
-import { DashboardHeader } from './components/DashboardHeader';
-import { ActionModal } from './components/ActionModal';
-import { AllAccountsView } from './components/AllAccountsView';
-import { AccountDetailModal } from './components/AccountDetailModal';
-import { ReportModal } from './components/ReportModal';
-import { GoalsModal } from './components/GoalsModal';
-import './styles/global.css';
-import { supabase } from './lib/supabaseClient';
-import { useAuth } from './auth/AuthProvider';
+import { useState, type FormEvent } from 'react';
+import { Icon, PlatformIcon } from './components/Icons';
+import {
+  defaultSites,
+  readSavedSites,
+  normalizeUrl,
+  type Site,
+} from './lib/sites';
 
-type Account = {
-  name: string;
-  balance: number;
-  available: number;
-  number: string;
-  currency: string;
-};
-
-type Goal = {
-  title: string;
-  progress: number;
-  target: number;
-  current: number;
-};
-
-type Transaction = {
-  date: string;
-  description: string;
-  amount: number;
-  type: 'credit' | 'debit';
-};
-
-const initialAccounts: Account[] = [
-  {
-    name: 'Everyday Checking',
-    balance: 8124.34,
-    available: 7934.75,
-    number: '••• 1342',
-    currency: 'USD',
-  },
-  {
-    name: 'Savings Vault',
-    balance: 14290.22,
-    available: 14290.22,
-    number: '••• 7489',
-    currency: 'USD',
-  },
-];
-
-const initialTransactions: Transaction[] = [
-  { date: 'Jul 25', description: 'Payroll deposit', amount: 3250.0, type: 'credit' },
-  { date: 'Jul 24', description: 'Grocery market', amount: -124.76, type: 'debit' },
-  { date: 'Jul 23', description: 'Utility bill', amount: -89.45, type: 'debit' },
-  { date: 'Jul 22', description: 'Coffee shop', amount: -14.6, type: 'debit' },
-  { date: 'Jul 21', description: 'Travel refund', amount: 98.22, type: 'credit' },
-];
-
-const trends = [
-  { category: 'Food & Dining', amount: 420, color: '#4f46e5' },
-  { category: 'Shopping', amount: 360, color: '#10b981' },
-  { category: 'Bills', amount: 290, color: '#f59e0b' },
-  { category: 'Transport', amount: 180, color: '#ec4899' },
-];
-
-const initialGoals: Goal[] = [
-  { title: 'Vacation Fund', progress: 58, target: 5000, current: 2900 },
-  { title: 'Emergency Cash', progress: 82, target: 12000, current: 9840 },
-];
-
-const quickActions = ['Send money', 'Pay bill', 'Deposit check', 'Freeze card'] as const;
-
-type QuickAction = (typeof quickActions)[number];
+const categories = [
+  'All websites',
+  'Social',
+  'Entertainment',
+  'Work',
+  'My links',
+] as const;
+type Category = (typeof categories)[number];
 
 function App() {
-  const [activeAction, setActiveAction] = useState<QuickAction | null>(null);
-  const [isCardFrozen, setIsCardFrozen] = useState(false);
-  const [actionMessage, setActionMessage] = useState('');
-  const [showAccountsView, setShowAccountsView] = useState(false);
-  const [accounts, setAccounts] = useState<Account[]>(initialAccounts);
-  const [goals, setGoals] = useState<Goal[]>(initialGoals);
-  const [transactionsState, setTransactions] = useState<Transaction[]>(initialTransactions);
-  const auth = useAuth();
-  const [loadingRemote, setLoadingRemote] = useState(false);
+  const [savedSites, setSavedSites] = useState<Site[]>(readSavedSites);
+  const [category, setCategory] = useState<Category>('All websites');
+  const [search, setSearch] = useState('');
+  const [showForm, setShowForm] = useState(false);
+  const [name, setName] = useState('');
+  const [url, setUrl] = useState('');
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const sites = [...defaultSites, ...savedSites];
+  const visibleSites = sites.filter(
+    (site) =>
+      (category === 'All websites' || site.category === category) &&
+      `${site.name} ${site.url}`
+        .toLowerCase()
+        .includes(search.toLowerCase().trim()),
+  );
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!auth?.user) return;
-      setLoadingRemote(true);
-      try {
-        // Fetch accounts
-        const { data: accData, error: accErr } = await supabase
-          .from('accounts')
-          .select('*')
-          .eq('user_id', auth.user.id);
-        if (!accErr && accData && accData.length > 0) {
-          setAccounts(
-            accData.map((r: any) => ({
-              name: r.name ?? 'Account',
-              balance: Number(r.balance ?? 0),
-              available: Number(r.available ?? r.balance ?? 0),
-              number: r.number ?? '•••',
-              currency: r.currency ?? 'USD',
-            })),
-          );
-        }
-
-        // Fetch transactions
-        const { data: txData, error: txErr } = await supabase
-          .from('transactions')
-          .select('*')
-          .eq('user_id', auth.user.id)
-          .order('created_at', { ascending: false })
-          .limit(20);
-        if (!txErr && txData && txData.length > 0) {
-          setTransactions(
-            txData.map((t: any) => ({
-              date: t.date ?? '',
-              description: t.description ?? '',
-              amount: Number(t.amount ?? 0),
-              type: Number(t.amount ?? 0) >= 0 ? 'credit' : 'debit',
-            })),
-          );
-        }
-
-        // Fetch goals
-        const { data: gData, error: gErr } = await supabase
-          .from('savings_goals')
-          .select('*')
-          .eq('user_id', auth.user.id);
-        if (!gErr && gData && gData.length > 0) {
-          setGoals(
-            gData.map((g: any) => ({ title: g.title ?? 'Goal', progress: Number(g.progress ?? 0), target: Number(g.target ?? 0), current: Number(g.current ?? 0) })),
-          );
-        }
-      } catch (err) {
-        console.warn('Remote fetch error', err);
-      } finally {
-        setLoadingRemote(false);
-      }
-    };
-
-    fetchData();
-  }, [auth?.user]);
-
-  const closeModal = () => setActiveAction(null);
-
-  const [selectedAccount, setSelectedAccount] = useState<typeof accounts[number] | null>(null);
-  const [showReport, setShowReport] = useState(false);
-  const [showGoals, setShowGoals] = useState(false);
-
-  const handleActionClick = (action: QuickAction) => {
-    setActionMessage('');
-    setActiveAction(action);
-  };
-
-  const handleSubmit = (payload: { recipient?: string; amount?: number; biller?: string; checkAmount?: number }) => {
-    console.log('submit', activeAction, payload);
-    if (activeAction === 'Send money' && payload.recipient && payload.amount) {
-      setAccounts((currentAccounts) =>
-        currentAccounts.map((account) =>
-          account.name === 'Everyday Checking' ? { ...account, balance: account.balance - payload.amount! } : account,
-        ),
-      );
-      setActionMessage(`Sent $${payload.amount.toFixed(2)} to ${payload.recipient}.`);
+  function updateSavedSites(next: Site[]) {
+    setSavedSites(next);
+    try {
+      localStorage.setItem('launchpad-links', JSON.stringify(next));
+      return true;
+    } catch {
+      return false;
     }
+  }
 
-    if (activeAction === 'Pay bill' && payload.biller && payload.amount) {
-      setAccounts((currentAccounts) =>
-        currentAccounts.map((account) =>
-          account.name === 'Everyday Checking' ? { ...account, balance: account.balance - payload.amount! } : account,
-        ),
+  function addSite(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError('');
+    const destination = normalizeUrl(url);
+    if (!destination) {
+      setError(
+        'Enter a valid website address, such as https://example.com. Only HTTP and HTTPS links are supported.',
       );
-      setActionMessage(`Paid $${payload.amount.toFixed(2)} to ${payload.biller}.`);
+      return;
     }
-
-    if (activeAction === 'Deposit check' && payload.checkAmount) {
-      setAccounts((currentAccounts) =>
-        currentAccounts.map((account) =>
-          account.name === 'Everyday Checking' ? { ...account, balance: account.balance + payload.checkAmount! } : account,
-        ),
-      );
-      setActionMessage(`Deposited $${payload.checkAmount.toFixed(2)} via check.`);
+    if (!name.trim()) {
+      setError('Give your website a name.');
+      return;
     }
-
-    // Persist transaction and update account in Supabase (best-effort, non-blocking)
-    (async () => {
-      try {
-        if (!auth?.user) return;
-
-        const userId = auth.user.id;
-        let amt = 0;
-        let desc = '';
-        let type: 'credit' | 'debit' = 'debit';
-
-        if (activeAction === 'Send money' && payload.recipient && payload.amount) {
-          amt = -Math.abs(payload.amount);
-          desc = `Sent to ${payload.recipient}`;
-          type = 'debit';
-        }
-
-        if (activeAction === 'Pay bill' && payload.biller && payload.amount) {
-          amt = -Math.abs(payload.amount);
-          desc = `Paid ${payload.biller}`;
-          type = 'debit';
-        }
-
-        if (activeAction === 'Deposit check' && payload.checkAmount) {
-          amt = Math.abs(payload.checkAmount);
-          desc = `Deposit check`;
-          type = 'credit';
-        }
-
-        if (amt !== 0) {
-          // Upsert account (find by name 'Everyday Checking')
-          const accName = 'Everyday Checking';
-          const { data: foundAcc } = await supabase.from('accounts').select('*').eq('user_id', userId).eq('name', accName).limit(1).maybeSingle();
-          if (foundAcc) {
-            const newBalance = Number(foundAcc.balance ?? 0) + amt;
-            await supabase.from('accounts').update({ balance: newBalance }).eq('id', foundAcc.id).eq('user_id', userId);
-          } else {
-            await supabase.from('accounts').insert([{ user_id: userId, name: accName, balance: amt, available: amt, number: '••• 0000', currency: 'USD' }]);
-          }
-
-          // Insert transaction
-          await supabase.from('transactions').insert([{ user_id: userId, amount: amt, description: desc, type, date: new Date().toISOString() }]);
-        }
-      } catch (err) {
-        console.warn('Failed to persist transaction', err);
-      }
-    })();
-
-    closeModal();
-  };
-
-  const handleToggleFreeze = () => {
-    setIsCardFrozen((value) => {
-      const nextValue = !value;
-      setActionMessage(`Card ${nextValue ? 'frozen' : 'unfrozen'} successfully.`);
-      return nextValue;
-    });
-    closeModal();
-  };
-
-  const totalNetWorth = useMemo(() => accounts.reduce((sum, account) => sum + account.balance, 0), [accounts]);
-
-  const handleGoalUpdate = (title: string, nextProgress: number) => {
-    setGoals((currentGoals) =>
-      currentGoals.map((goal) =>
-        goal.title === title ? { ...goal, progress: nextProgress, current: Math.round((nextProgress / 100) * goal.target) } : goal,
-      ),
+    const persisted = updateSavedSites([
+      ...savedSites,
+      {
+        id: crypto.randomUUID(),
+        name: name.trim(),
+        url: destination,
+        description: 'Your own little corner of the internet.',
+        category: 'My links',
+        icon: 'globe',
+      },
+    ]);
+    setName('');
+    setUrl('');
+    setShowForm(false);
+    setCategory('My links');
+    setSearch('');
+    setNotice(
+      persisted
+        ? 'Website added. Saved in this browser for next time.'
+        : 'Website added for this visit. Your browser could not save it for next time.',
     );
+  }
 
-    // Persist to Supabase if available; do not block UI.
-    (async () => {
-      try {
-        if (!auth?.user) return;
-        const payload = { title, progress: nextProgress, target: 0, current: Math.round((nextProgress / 100) * 0), user_id: auth.user.id };
-        // Try update by title + user_id
-        const res = await supabase.from('savings_goals').update({ progress: nextProgress, current: Math.round((nextProgress / 100) * 0) }).eq('user_id', auth.user.id).eq('title', title);
-        const data = (res as any).data;
-        const error = (res as any).error;
-        if (error) {
-          // Try insert if update failed
-          await supabase.from('savings_goals').insert([{ title, progress: nextProgress, target: 0, current: Math.round((nextProgress / 100) * 0), user_id: auth.user.id }]);
-        } else if (!Array.isArray(data) || data.length === 0) {
-          await supabase.from('savings_goals').insert([{ title, progress: nextProgress, target: 0, current: Math.round((nextProgress / 100) * 0), user_id: auth.user.id }]);
-        }
-      } catch (err) {
-        // Swallow remote errors — UI remains functional with local state
-        console.warn('Failed to persist goal update', err);
-      }
-    })();
-  };
-
-  const handleDownload = () => {
-    // Export transactions as CSV
-    const header = ['date', 'description', 'amount', 'type'];
-    const rows = transactionsState.map((t) => [t.date, t.description, t.amount.toString(), t.type]);
-    const csv = [header, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'transactions.csv';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    setActionMessage('Downloaded transactions.csv');
-  };
+  function removeSite(site: Site) {
+    const persisted = updateSavedSites(
+      savedSites.filter((saved) => saved.id !== site.id),
+    );
+    setNotice(
+      persisted
+        ? `${site.name} removed.`
+        : `${site.name} removed for this visit. Your browser could not save the change.`,
+    );
+  }
 
   return (
     <div className="app-shell">
-      <DashboardHeader cardFrozen={isCardFrozen} />
-      <main className="dashboard-grid">
-        <section className="panel panel-welcome">
-          <div>
-            <p className="eyebrow">Welcome back, Nora</p>
-            <h1>Hush Bank Dashboard</h1>
-            <p className="text-muted">
-              Monitor balances, track spending patterns, and manage savings goals with secure, modern banking tools.
+      <aside className="sidebar" aria-label="Website categories">
+        <a className="brand" href="./" aria-label="Launchpad home">
+          <span className="brand-symbol">
+            <Icon name="arrow" />
+          </span>
+          launchpad<span className="brand-dot">.</span>
+        </a>
+        <div className="workspace-label">YOUR DAILY STARTING POINT</div>
+        <nav className="navigation">
+          {categories.map((item, index) => (
+            <button
+              key={item}
+              className={category === item ? 'nav-item active' : 'nav-item'}
+              onClick={() => setCategory(item)}
+              aria-pressed={category === item}
+            >
+              <Icon
+                name={['grid', 'people', 'play', 'briefcase', 'link'][index]}
+              />
+              <span>{item}</span>
+              {item === 'All websites' && (
+                <span className="nav-count">{sites.length}</span>
+              )}
+              {item === 'My links' && savedSites.length > 0 && (
+                <span className="nav-count">{savedSites.length}</span>
+              )}
+            </button>
+          ))}
+        </nav>
+        <div className="sidebar-note">
+          <span className="note-icon">
+            <Icon name="spark" />
+          </span>
+          <h3>
+            A little less searching.
+            <br />A lot more exploring.
+          </h3>
+          <p>Your favorite places on the web, all within reach.</p>
+          <span className="note-doodle" aria-hidden="true">
+            ↗
+          </span>
+        </div>
+        <div className="sidebar-footer">
+          <span className="status-dot" />
+          Your internet, one click away.
+        </div>
+      </aside>
+
+      <div className="main-shell">
+        <header className="topbar">
+          <div className="breadcrumb">
+            Your space <span>/</span> <strong>{category}</strong>
+          </div>
+          <span className="topbar-note">
+            <Icon name="external" /> Always a new tab
+          </span>
+        </header>
+        <main id="main">
+          <section className="hero">
+            <div className="hero-copy">
+              <p className="eyebrow">
+                <span /> A SMALL SHORTCUT TO A BIG WORLD
+              </p>
+              <h1>
+                Good things are
+                <br />
+                just a <span>click away.</span>
+              </h1>
+              <p className="hero-description">
+                Catch up, get inspired, or find your next rabbit hole.
+                <br className="desktop-break" /> Open the places you love,
+                straight from here.
+              </p>
+              <a className="hero-button" href="#websites">
+                Explore your websites <Icon name="arrow" />
+              </a>
+            </div>
+            <div className="hero-art" aria-hidden="true">
+              <div className="orbit orbit-one" />
+              <div className="orbit orbit-two" />
+              <span className="art-spark spark-one">✳</span>
+              <span className="art-spark spark-two">✦</span>
+              <div className="floating-tile tile-instagram">
+                <PlatformIcon name="instagram" />
+              </div>
+              <div className="floating-tile tile-facebook">
+                <PlatformIcon name="facebook" />
+              </div>
+              <div className="floating-tile tile-youtube">
+                <PlatformIcon name="youtube" />
+              </div>
+              <span className="art-caption">
+                SO MANY PLACES. ONE LAUNCHPAD.
+              </span>
+            </div>
+          </section>
+
+          <section
+            className="websites-section"
+            id="websites"
+            aria-labelledby="websites-title"
+          >
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow section-eyebrow">PICK A DESTINATION</p>
+                <h2 id="websites-title">
+                  {category === 'All websites'
+                    ? 'Your everyday internet'
+                    : category}
+                  <span className="site-count">{visibleSites.length}</span>
+                </h2>
+              </div>
+              <button
+                className="add-button"
+                onClick={() => {
+                  setShowForm(!showForm);
+                  setError('');
+                }}
+                aria-expanded={showForm}
+                aria-controls="add-website"
+              >
+                <Icon name="plus" /> Add a website
+              </button>
+            </div>
+            {showForm && (
+              <form className="add-form" id="add-website" onSubmit={addSite}>
+                <div className="form-heading">
+                  <h3>Make room for a favorite</h3>
+                  <button
+                    type="button"
+                    className="icon-button"
+                    aria-label="Close add website form"
+                    onClick={() => setShowForm(false)}
+                  >
+                    <Icon name="close" />
+                  </button>
+                </div>
+                <p>Add any website. Your links are saved in this browser.</p>
+                <div className="form-fields">
+                  <label>
+                    Website name
+                    <input
+                      autoFocus
+                      required
+                      maxLength={60}
+                      value={name}
+                      onChange={(event) => setName(event.target.value)}
+                      placeholder="e.g. My favorite blog"
+                    />
+                  </label>
+                  <label>
+                    Website address
+                    <input
+                      required
+                      value={url}
+                      onChange={(event) => setUrl(event.target.value)}
+                      placeholder="https://example.com"
+                      aria-describedby={error ? 'url-error' : undefined}
+                      aria-invalid={Boolean(error)}
+                    />
+                  </label>
+                  <button className="save-button" type="submit">
+                    Save website <Icon name="plus" />
+                  </button>
+                </div>
+                {error && (
+                  <p className="form-error" id="url-error" role="alert">
+                    {error}
+                  </p>
+                )}
+              </form>
+            )}
+            <div className="filter-row">
+              <div
+                className="filter-tabs"
+                role="group"
+                aria-label="Filter websites"
+              >
+                {['All websites', 'Social', 'Entertainment', 'Work'].map(
+                  (item) => (
+                    <button
+                      key={item}
+                      className={
+                        category === item ? 'filter-tab selected' : 'filter-tab'
+                      }
+                      onClick={() => setCategory(item as Category)}
+                      aria-pressed={category === item}
+                    >
+                      {item === 'All websites' ? 'All' : item}
+                    </button>
+                  ),
+                )}
+              </div>
+              <label className="search-box">
+                <Icon name="search" />
+                <input
+                  aria-label="Search websites"
+                  placeholder="Find a website..."
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                />
+                {search && (
+                  <button
+                    className="icon-button"
+                    aria-label="Clear search"
+                    onClick={() => setSearch('')}
+                  >
+                    <Icon name="close" />
+                  </button>
+                )}
+              </label>
+            </div>
+            <p className="sr-only" role="status">
+              {notice}
             </p>
-          </div>
-          <div className="hero-stat">
-            <span>Total net worth</span>
-            <strong>
-              {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalNetWorth)}
-            </strong>
-          </div>
-        </section>
-
-        {showAccountsView ? (
-          <AllAccountsView
-            accounts={accounts}
-            onClose={() => setShowAccountsView(false)}
-            onViewAccount={(acc) => {
-              setSelectedAccount(acc);
-              setShowAccountsView(false);
-            }}
-          />
-        ) : (
-          <AccountSummary
-            accounts={accounts}
-            onViewAllAccounts={() => setShowAccountsView(true)}
-            onViewAccount={(acc) => setSelectedAccount(acc)}
-          />
-        )}
-
-        <QuickActions actions={quickActions} onAction={handleActionClick} />
-
-        <SpendingTrends trends={trends} onViewReport={() => setShowReport(true)} />
-
-        <section className="panel panel-transactions">
-          <RecentTransactions transactions={transactionsState} onDownload={() => handleDownload()} />
-        </section>
-
-        <SavingsGoals goals={goals} onManageGoals={() => setShowGoals(true)} />
-      </main>
-
-      {actionMessage ? <div className="action-message">{actionMessage}</div> : null}
-
-      {selectedAccount ? (
-        <AccountDetailModal account={selectedAccount} onClose={() => setSelectedAccount(null)} />
-      ) : null}
-
-      {showReport ? <ReportModal trends={trends} transactions={transactionsState} onClose={() => setShowReport(false)} /> : null}
-
-      {showGoals ? <GoalsModal goals={goals} onClose={() => setShowGoals(false)} onUpdateGoal={handleGoalUpdate} /> : null}
-
-      {activeAction ? (
-        <ActionModal
-          action={activeAction}
-          onClose={closeModal}
-          onSubmit={handleSubmit}
-          isCardFrozen={isCardFrozen}
-          onToggleFreeze={handleToggleFreeze}
-        />
-      ) : null}
+            <div className="website-grid">
+              {visibleSites.map((site) => (
+                <article
+                  className={`website-card card-${site.icon}`}
+                  key={site.id}
+                >
+                  <a
+                    className="website-link"
+                    href={site.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Open ${site.name} (opens in a new tab)`}
+                  >
+                    <div className="card-top">
+                      <span className={`platform-icon platform-${site.icon}`}>
+                        <PlatformIcon name={site.icon} />
+                      </span>
+                      <span className="card-arrow">
+                        <Icon name="external" />
+                      </span>
+                    </div>
+                    <h3>{site.name}</h3>
+                    <p>{site.description}</p>
+                    <div className="card-bottom">
+                      <span>
+                        {new URL(site.url).hostname.replace(/^www\./, '')}
+                      </span>
+                      <span className="category-label">
+                        {site.category === 'My links'
+                          ? 'Personal'
+                          : site.category}
+                      </span>
+                    </div>
+                  </a>
+                  {site.category === 'My links' && (
+                    <button
+                      className="remove-button"
+                      aria-label={`Remove ${site.name}`}
+                      onClick={() => removeSite(site)}
+                    >
+                      <Icon name="close" />
+                    </button>
+                  )}
+                </article>
+              ))}
+            </div>
+            {visibleSites.length === 0 && (
+              <div className="empty-state">
+                <Icon name="globe" />
+                <h3>
+                  {search
+                    ? 'No websites found'
+                    : 'Your next favorite belongs here'}
+                </h3>
+                <p>
+                  {search
+                    ? 'Try another name or website address.'
+                    : 'Use “Add a website” to save a place you love.'}
+                </p>
+              </div>
+            )}
+            <div className="destination-note">
+              <Icon name="external" />
+              <p>
+                Real websites. A fresh tab.{' '}
+                <span>Every link takes you directly to its destination.</span>
+              </p>
+            </div>
+          </section>
+          <footer className="page-footer">
+            <span>Less looking. More living.</span>
+            <span>
+              Made for your everyday internet{' '}
+              <span className="footer-spark">✳</span>
+            </span>
+          </footer>
+        </main>
+      </div>
     </div>
   );
 }
