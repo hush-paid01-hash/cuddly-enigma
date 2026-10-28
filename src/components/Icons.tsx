@@ -2,6 +2,41 @@ import type { ReactNode } from 'react';
 
 export function Icon({ name }: { name: string }) {
   const paths: Record<string, ReactNode> = {
+    star: (
+      <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9Z" />
+    ),
+    sun: (
+      <>
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5" />
+      </>
+    ),
+    moon: <path d="M20.5 13A9 9 0 0 1 11 3.5 9 9 0 1 0 20.5 13Z" />,
+    monitor: (
+      <>
+        <rect x="3" y="4" width="18" height="13" rx="2" />
+        <path d="M8 21h8m-4-4v4" />
+      </>
+    ),
+    palette: (
+      <>
+        <circle cx="8" cy="10" r=".6" />
+        <circle cx="12" cy="7" r=".6" />
+        <circle cx="16" cy="10" r=".6" />
+        <path d="M12 3a9 9 0 1 0 0 18h1a2 2 0 0 0 1-3.7 1.5 1.5 0 0 1 .7-2.8H18c5 0 4-11.5-6-11.5Z" />
+      </>
+    ),
+    check: <path d="m5 12 4 4L19 6" />,
+    reorder: (
+      <>
+        <path d="M8 6h13M8 12h13M8 18h13" />
+        <circle cx="3" cy="6" r=".5" />
+        <circle cx="3" cy="12" r=".5" />
+        <circle cx="3" cy="18" r=".5" />
+      </>
+    ),
+    left: <path d="m14 6-6 6 6 6" />,
+    right: <path d="m10 6 6 6-6 6" />,
     arrow: <path d="M5 12h14m-6-6 6 6-6 6" />,
     external: (
       <>

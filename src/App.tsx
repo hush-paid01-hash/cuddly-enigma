@@ -1,11 +1,20 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Icon, PlatformIcon } from './components/Icons';
+import { AppearancePanel } from './components/AppearancePanel';
+import { Favorites } from './components/Favorites';
 import {
   defaultSites,
   readSavedSites,
   normalizeUrl,
   type Site,
 } from './lib/sites';
+
+import {
+  moveFavorite,
+  readPreferences,
+  savePreferences,
+  type Preferences,
+} from './lib/preferences';
 
 const categories = [
   'All websites',
@@ -17,6 +26,9 @@ const categories = [
 type Category = (typeof categories)[number];
 
 function App() {
+  const [preferences, setPreferences] = useState(readPreferences);
+  const [showAppearance, setShowAppearance] = useState(false);
+  const [editingFavorites, setEditingFavorites] = useState(false);
   const [savedSites, setSavedSites] = useState<Site[]>(readSavedSites);
   const [category, setCategory] = useState<Category>('All websites');
   const [search, setSearch] = useState('');
@@ -26,6 +38,62 @@ function App() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const sites = [...defaultSites, ...savedSites];
+  const favoriteSites = preferences.favorites.flatMap((id) => {
+    const site = sites.find((item) => item.id === id);
+    return site ? [site] : [];
+  });
+  const favoriteIds = favoriteSites.map((site) => site.id);
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const applyTheme = () => {
+      document.documentElement.dataset.theme =
+        preferences.mode === 'system'
+          ? media.matches
+            ? 'dark'
+            : 'light'
+          : preferences.mode;
+    };
+    applyTheme();
+    media.addEventListener('change', applyTheme);
+    return () => media.removeEventListener('change', applyTheme);
+  }, [preferences.mode]);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--accent', preferences.accent);
+  }, [preferences.accent]);
+
+  function updatePreferences(next: Preferences, message: string) {
+    setPreferences(next);
+    const persisted = savePreferences(next);
+    setNotice(
+      persisted
+        ? message
+        : `${message} For this visit only; your browser could not save the change.`,
+    );
+  }
+
+  function toggleFavorite(site: Site) {
+    const isFavorite = preferences.favorites.includes(site.id);
+    updatePreferences(
+      {
+        ...preferences,
+        favorites: isFavorite
+          ? favoriteIds.filter((id) => id !== site.id)
+          : [...favoriteIds, site.id],
+      },
+      `${site.name} ${isFavorite ? 'removed from' : 'added to'} favorites.`,
+    );
+  }
+
+  function reorderFavorite(site: Site, direction: -1 | 1) {
+    const favorites = moveFavorite(favoriteIds, site.id, direction);
+    updatePreferences(
+      { ...preferences, favorites },
+      `${site.name} moved to position ${favorites.indexOf(site.id) + 1} of ${favorites.length}.`,
+    );
+  }
+
   const visibleSites = sites.filter(
     (site) =>
       (category === 'All websites' || site.category === category) &&
@@ -85,8 +153,14 @@ function App() {
     const persisted = updateSavedSites(
       savedSites.filter((saved) => saved.id !== site.id),
     );
+    const nextPreferences = {
+      ...preferences,
+      favorites: preferences.favorites.filter((id) => id !== site.id),
+    };
+    const favoritesPersisted = savePreferences(nextPreferences);
+    setPreferences(nextPreferences);
     setNotice(
-      persisted
+      persisted && favoritesPersisted
         ? `${site.name} removed.`
         : `${site.name} removed for this visit. Your browser could not save the change.`,
     );
@@ -94,6 +168,9 @@ function App() {
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main">
+        Skip to content
+      </a>
       <aside className="sidebar" aria-label="Website categories">
         <a className="brand" href="./" aria-label="Launchpad home">
           <span className="brand-symbol">
@@ -147,11 +224,26 @@ function App() {
           <div className="breadcrumb">
             Your space <span>/</span> <strong>{category}</strong>
           </div>
-          <span className="topbar-note">
-            <Icon name="external" /> Always a new tab
-          </span>
+          <button
+            className="appearance-button"
+            onClick={() => setShowAppearance(!showAppearance)}
+            aria-expanded={showAppearance}
+            aria-controls="appearance-panel"
+          >
+            <Icon name="palette" /> <span>Personalize</span>
+          </button>
         </header>
         <main id="main">
+          {showAppearance && (
+            <AppearancePanel
+              preferences={preferences}
+              updatePreferences={updatePreferences}
+              onClose={() => setShowAppearance(false)}
+            />
+          )}
+          <p className="notice" role="status">
+            {notice}
+          </p>
           <section className="hero">
             <div className="hero-copy">
               <p className="eyebrow">
@@ -191,6 +283,13 @@ function App() {
             </div>
           </section>
 
+          <Favorites
+            favoriteSites={favoriteSites}
+            editingFavorites={editingFavorites}
+            onToggleEditing={() => setEditingFavorites(!editingFavorites)}
+            toggleFavorite={toggleFavorite}
+            reorderFavorite={reorderFavorite}
+          />
           <section
             className="websites-section"
             id="websites"
@@ -306,9 +405,6 @@ function App() {
                 )}
               </label>
             </div>
-            <p className="sr-only" role="status">
-              {notice}
-            </p>
             <div className="website-grid">
               {visibleSites.map((site) => (
                 <article
@@ -343,6 +439,14 @@ function App() {
                       </span>
                     </div>
                   </a>
+                  <button
+                    className="favorite-button"
+                    aria-label={`${preferences.favorites.includes(site.id) ? 'Unfavorite' : 'Favorite'} ${site.name}`}
+                    aria-pressed={preferences.favorites.includes(site.id)}
+                    onClick={() => toggleFavorite(site)}
+                  >
+                    <Icon name="star" />
+                  </button>
                   {site.category === 'My links' && (
                     <button
                       className="remove-button"
