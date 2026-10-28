@@ -16,6 +16,7 @@ function mockStorage(value) {
 
 test('restores appearance and favorite order without changing existing links', () => {
   const preferences = {
+    ...defaultPreferences,
     mode: 'dark',
     accent: '#12AbEF',
     favorites: ['youtube', 'custom', 'instagram'],
@@ -54,6 +55,7 @@ test('validates saved preferences independently and preserves an empty favorites
     JSON.stringify({ mode: 'light', accent: '#ffffff', favorites: [] }),
   );
   assert.deepEqual(readPreferences(), {
+    ...defaultPreferences,
     mode: 'light',
     accent: '#ffffff',
     favorites: [],
@@ -110,4 +112,25 @@ test('moves favorites in both directions without mutating or losing destinations
   assert.deepEqual(moveFavorite(ids, 'custom', 1), ids);
   assert.deepEqual(moveFavorite(ids, 'missing', 1), ids);
   assert.deepEqual(moveFavorite([], 'missing', -1), []);
+});
+
+test('migrates existing preferences and validates history and favorites visibility settings', () => {
+  mockStorage(
+    JSON.stringify({ mode: 'dark', accent: '#123456', favorites: ['custom'] }),
+  );
+  assert.deepEqual(readPreferences(), {
+    ...defaultPreferences,
+    mode: 'dark',
+    accent: '#123456',
+    favorites: ['custom'],
+  });
+  mockStorage(JSON.stringify({ rememberHistory: false, showFavorites: false }));
+  assert.deepEqual(readPreferences(), {
+    ...defaultPreferences,
+    rememberHistory: false,
+    showFavorites: false,
+  });
+  mockStorage(JSON.stringify({ rememberHistory: 'false', showFavorites: 0 }));
+  assert.deepEqual(readPreferences(), defaultPreferences);
+  delete globalThis.localStorage;
 });

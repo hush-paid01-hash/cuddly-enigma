@@ -3,9 +3,13 @@ export type Preferences = {
   mode: ThemeMode;
   accent: string;
   favorites: string[];
+  rememberHistory: boolean;
+  showFavorites: boolean;
 };
 
 export const defaultPreferences: Preferences = {
+  rememberHistory: true,
+  showFavorites: true,
   mode: 'system',
   accent: '#9b83db',
   favorites: ['instagram', 'youtube', 'linkedin'],
@@ -27,6 +31,14 @@ export function readPreferences(): Preferences {
     if (!saved || typeof saved !== 'object') return { ...defaultPreferences };
     const values = saved as Record<string, unknown>;
     return {
+      rememberHistory:
+        typeof values.rememberHistory === 'boolean'
+          ? values.rememberHistory
+          : defaultPreferences.rememberHistory,
+      showFavorites:
+        typeof values.showFavorites === 'boolean'
+          ? values.showFavorites
+          : defaultPreferences.showFavorites,
       mode: ['light', 'dark', 'system'].includes(values.mode as string)
         ? (values.mode as ThemeMode)
         : defaultPreferences.mode,

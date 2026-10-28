@@ -2,6 +2,19 @@ import type { ReactNode } from 'react';
 
 export function Icon({ name }: { name: string }) {
   const paths: Record<string, ReactNode> = {
+    history: (
+      <>
+        <path d="M3 11a9 9 0 1 1 2.6 7M3 4v7h7" />
+        <path d="M12 7v5l3 2" />
+      </>
+    ),
+    settings: (
+      <>
+        <path d="M4 7h16M4 17h16" />
+        <circle cx="9" cy="7" r="3" fill="var(--surface)" />
+        <circle cx="15" cy="17" r="3" fill="var(--surface)" />
+      </>
+    ),
     star: (
       <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9Z" />
     ),
