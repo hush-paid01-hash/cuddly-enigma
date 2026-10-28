@@ -3,6 +3,7 @@ import type { Site } from '../lib/sites';
 
 type FavoritesProps = {
   favoriteSites: Site[];
+  onOpen: (site: Site) => void;
   editingFavorites: boolean;
   onToggleEditing: () => void;
   toggleFavorite: (site: Site) => void;
@@ -11,6 +12,7 @@ type FavoritesProps = {
 
 export function Favorites({
   favoriteSites,
+  onOpen,
   editingFavorites,
   onToggleEditing,
   toggleFavorite,
@@ -49,6 +51,10 @@ export function Favorites({
             <li className="favorite-card" key={site.id}>
               <a
                 href={site.url}
+                onClick={() => onOpen(site)}
+                onAuxClick={(event) => {
+                  if (event.button === 1) onOpen(site);
+                }}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={`Open favorite ${site.name} (opens in a new tab)`}

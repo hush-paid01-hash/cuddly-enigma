@@ -6,31 +6,33 @@ import {
   type ThemeMode,
 } from '../lib/preferences';
 
-type AppearancePanelProps = {
+type SettingsPanelProps = {
   preferences: Preferences;
   updatePreferences: (next: Preferences, message: string) => void;
   onClose: () => void;
+  onViewHistory: () => void;
 };
 
-export function AppearancePanel({
+export function SettingsPanel({
   preferences,
   updatePreferences,
   onClose,
-}: AppearancePanelProps) {
+  onViewHistory,
+}: SettingsPanelProps) {
   return (
     <section
       className="appearance-panel"
-      id="appearance-panel"
-      aria-labelledby="appearance-title"
+      id="settings-panel"
+      aria-labelledby="settings-title"
     >
       <div className="form-heading">
         <div>
           <p className="eyebrow">A SPACE THAT FEELS LIKE YOU</p>
-          <h2 id="appearance-title">Make it yours</h2>
+          <h2 id="settings-title">Settings</h2>
         </div>
         <button
           className="icon-button"
-          aria-label="Close appearance settings"
+          aria-label="Close settings"
           onClick={onClose}
         >
           <Icon name="close" />
@@ -108,6 +110,51 @@ export function AppearancePanel({
             </label>
           </div>
         </fieldset>
+      </div>
+      <div className="settings-options">
+        <label className="setting-row">
+          <span>
+            <strong>Show favorites</strong>
+            <small>
+              Keep your starred websites within reach. Hiding them keeps your
+              favorites and their order.
+            </small>
+          </span>
+          <input
+            type="checkbox"
+            checked={preferences.showFavorites}
+            onChange={(event) =>
+              updatePreferences(
+                { ...preferences, showFavorites: event.target.checked },
+                event.target.checked ? 'Favorites shown.' : 'Favorites hidden.',
+              )
+            }
+          />
+        </label>
+        <label className="setting-row">
+          <span>
+            <strong>Remember recently opened websites</strong>
+            <small>
+              Save the last 50 destinations opened from Launchpad in this
+              browser only. Turning this off keeps existing history.
+            </small>
+          </span>
+          <input
+            type="checkbox"
+            checked={preferences.rememberHistory}
+            onChange={(event) =>
+              updatePreferences(
+                { ...preferences, rememberHistory: event.target.checked },
+                event.target.checked
+                  ? 'History recording turned on.'
+                  : 'History recording paused.',
+              )
+            }
+          />
+        </label>
+        <button className="add-button" onClick={onViewHistory}>
+          <Icon name="history" /> View or clear history
+        </button>
       </div>
       <div className="appearance-footer">
         <p>Saved in this browser. System follows your device.</p>

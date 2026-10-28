@@ -1,6 +1,13 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Icon, PlatformIcon } from './components/Icons';
-import { AppearancePanel } from './components/AppearancePanel';
+import { SettingsPanel } from './components/SettingsPanel';
+import { History } from './components/History';
+import {
+  readHistory,
+  recordOpening,
+  saveHistory,
+  type HistoryEntry,
+} from './lib/history';
 import { Favorites } from './components/Favorites';
 import {
   defaultSites,
@@ -27,7 +34,9 @@ type Category = (typeof categories)[number];
 
 function App() {
   const [preferences, setPreferences] = useState(readPreferences);
-  const [showAppearance, setShowAppearance] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [view, setView] = useState<'websites' | 'history'>('websites');
+  const [history, setHistory] = useState(readHistory);
   const [editingFavorites, setEditingFavorites] = useState(false);
   const [savedSites, setSavedSites] = useState<Site[]>(readSavedSites);
   const [category, setCategory] = useState<Category>('All websites');
@@ -70,6 +79,26 @@ function App() {
       persisted
         ? message
         : `${message} For this visit only; your browser could not save the change.`,
+    );
+  }
+
+  function openSite(site: Pick<HistoryEntry, 'name' | 'url'>) {
+    if (!preferences.rememberHistory) return;
+    const next = recordOpening(history, site);
+    setHistory(next);
+    if (!saveHistory(next)) {
+      setNotice(
+        'History updated for this visit only; your browser could not save it.',
+      );
+    }
+  }
+
+  function clearHistory() {
+    setHistory([]);
+    setNotice(
+      saveHistory([])
+        ? 'History cleared.'
+        : 'History cleared for this visit. Your browser could not remove saved history; it may return next time.',
     );
   }
 
@@ -171,7 +200,7 @@ function App() {
       <a className="skip-link" href="#main">
         Skip to content
       </a>
-      <aside className="sidebar" aria-label="Website categories">
+      <aside className="sidebar" aria-label="Your space">
         <a className="brand" href="./" aria-label="Launchpad home">
           <span className="brand-symbol">
             <Icon name="arrow" />
@@ -183,9 +212,16 @@ function App() {
           {categories.map((item, index) => (
             <button
               key={item}
-              className={category === item ? 'nav-item active' : 'nav-item'}
-              onClick={() => setCategory(item)}
-              aria-pressed={category === item}
+              className={
+                view === 'websites' && category === item
+                  ? 'nav-item active'
+                  : 'nav-item'
+              }
+              onClick={() => {
+                setCategory(item);
+                setView('websites');
+              }}
+              aria-pressed={view === 'websites' && category === item}
             >
               <Icon
                 name={['grid', 'people', 'play', 'briefcase', 'link'][index]}
@@ -199,6 +235,26 @@ function App() {
               )}
             </button>
           ))}
+          <button
+            className={view === 'history' ? 'nav-item active' : 'nav-item'}
+            aria-pressed={view === 'history'}
+            onClick={() => {
+              setView('history');
+              setShowSettings(false);
+            }}
+          >
+            <Icon name="history" />
+            <span>History</span>
+          </button>
+          <button
+            className={showSettings ? 'nav-item active' : 'nav-item'}
+            aria-expanded={showSettings}
+            aria-controls="settings-panel"
+            onClick={() => setShowSettings(!showSettings)}
+          >
+            <Icon name="settings" />
+            <span>Settings</span>
+          </button>
         </nav>
         <div className="sidebar-note">
           <span className="note-icon">
@@ -222,266 +278,312 @@ function App() {
       <div className="main-shell">
         <header className="topbar">
           <div className="breadcrumb">
-            Your space <span>/</span> <strong>{category}</strong>
+            Your space <span>/</span>{' '}
+            <strong>
+              {showSettings
+                ? 'Settings'
+                : view === 'history'
+                  ? 'History'
+                  : category}
+            </strong>
           </div>
           <button
             className="appearance-button"
-            onClick={() => setShowAppearance(!showAppearance)}
-            aria-expanded={showAppearance}
-            aria-controls="appearance-panel"
+            onClick={() => setShowSettings(!showSettings)}
+            aria-expanded={showSettings}
+            aria-controls="settings-panel"
           >
-            <Icon name="palette" /> <span>Personalize</span>
+            <Icon name="settings" /> <span>Settings</span>
           </button>
         </header>
         <main id="main">
-          {showAppearance && (
-            <AppearancePanel
+          {showSettings && (
+            <SettingsPanel
               preferences={preferences}
               updatePreferences={updatePreferences}
-              onClose={() => setShowAppearance(false)}
+              onClose={() => setShowSettings(false)}
+              onViewHistory={() => {
+                setView('history');
+                setShowSettings(false);
+              }}
             />
           )}
           <p className="notice" role="status">
             {notice}
           </p>
-          <section className="hero">
-            <div className="hero-copy">
-              <p className="eyebrow">
-                <span /> A SMALL SHORTCUT TO A BIG WORLD
-              </p>
-              <h1>
-                Good things are
-                <br />
-                just a <span>click away.</span>
-              </h1>
-              <p className="hero-description">
-                Catch up, get inspired, or find your next rabbit hole.
-                <br className="desktop-break" /> Open the places you love,
-                straight from here.
-              </p>
-              <a className="hero-button" href="#websites">
-                Explore your websites <Icon name="arrow" />
-              </a>
-            </div>
-            <div className="hero-art" aria-hidden="true">
-              <div className="orbit orbit-one" />
-              <div className="orbit orbit-two" />
-              <span className="art-spark spark-one">✳</span>
-              <span className="art-spark spark-two">✦</span>
-              <div className="floating-tile tile-instagram">
-                <PlatformIcon name="instagram" />
-              </div>
-              <div className="floating-tile tile-facebook">
-                <PlatformIcon name="facebook" />
-              </div>
-              <div className="floating-tile tile-youtube">
-                <PlatformIcon name="youtube" />
-              </div>
-              <span className="art-caption">
-                SO MANY PLACES. ONE LAUNCHPAD.
-              </span>
-            </div>
-          </section>
-
-          <Favorites
-            favoriteSites={favoriteSites}
-            editingFavorites={editingFavorites}
-            onToggleEditing={() => setEditingFavorites(!editingFavorites)}
-            toggleFavorite={toggleFavorite}
-            reorderFavorite={reorderFavorite}
-          />
-          <section
-            className="websites-section"
-            id="websites"
-            aria-labelledby="websites-title"
-          >
-            <div className="section-heading">
-              <div>
-                <p className="eyebrow section-eyebrow">PICK A DESTINATION</p>
-                <h2 id="websites-title">
-                  {category === 'All websites'
-                    ? 'Your everyday internet'
-                    : category}
-                  <span className="site-count">{visibleSites.length}</span>
-                </h2>
-              </div>
-              <button
-                className="add-button"
-                onClick={() => {
-                  setShowForm(!showForm);
-                  setError('');
-                }}
-                aria-expanded={showForm}
-                aria-controls="add-website"
-              >
-                <Icon name="plus" /> Add a website
-              </button>
-            </div>
-            {showForm && (
-              <form className="add-form" id="add-website" onSubmit={addSite}>
-                <div className="form-heading">
-                  <h3>Make room for a favorite</h3>
-                  <button
-                    type="button"
-                    className="icon-button"
-                    aria-label="Close add website form"
-                    onClick={() => setShowForm(false)}
-                  >
-                    <Icon name="close" />
-                  </button>
-                </div>
-                <p>Add any website. Your links are saved in this browser.</p>
-                <div className="form-fields">
-                  <label>
-                    Website name
-                    <input
-                      autoFocus
-                      required
-                      maxLength={60}
-                      value={name}
-                      onChange={(event) => setName(event.target.value)}
-                      placeholder="e.g. My favorite blog"
-                    />
-                  </label>
-                  <label>
-                    Website address
-                    <input
-                      required
-                      value={url}
-                      onChange={(event) => setUrl(event.target.value)}
-                      placeholder="https://example.com"
-                      aria-describedby={error ? 'url-error' : undefined}
-                      aria-invalid={Boolean(error)}
-                    />
-                  </label>
-                  <button className="save-button" type="submit">
-                    Save website <Icon name="plus" />
-                  </button>
-                </div>
-                {error && (
-                  <p className="form-error" id="url-error" role="alert">
-                    {error}
+          {view === 'history' ? (
+            <History
+              entries={history}
+              recording={preferences.rememberHistory}
+              onOpen={openSite}
+              onClear={clearHistory}
+              onSettings={() => setShowSettings(true)}
+            />
+          ) : (
+            <>
+              <section className="hero">
+                <div className="hero-copy">
+                  <p className="eyebrow">
+                    <span /> A SMALL SHORTCUT TO A BIG WORLD
                   </p>
-                )}
-              </form>
-            )}
-            <div className="filter-row">
-              <div
-                className="filter-tabs"
-                role="group"
-                aria-label="Filter websites"
-              >
-                {['All websites', 'Social', 'Entertainment', 'Work'].map(
-                  (item) => (
-                    <button
-                      key={item}
-                      className={
-                        category === item ? 'filter-tab selected' : 'filter-tab'
-                      }
-                      onClick={() => setCategory(item as Category)}
-                      aria-pressed={category === item}
-                    >
-                      {item === 'All websites' ? 'All' : item}
-                    </button>
-                  ),
-                )}
-              </div>
-              <label className="search-box">
-                <Icon name="search" />
-                <input
-                  aria-label="Search websites"
-                  placeholder="Find a website..."
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                />
-                {search && (
-                  <button
-                    className="icon-button"
-                    aria-label="Clear search"
-                    onClick={() => setSearch('')}
-                  >
-                    <Icon name="close" />
-                  </button>
-                )}
-              </label>
-            </div>
-            <div className="website-grid">
-              {visibleSites.map((site) => (
-                <article
-                  className={`website-card card-${site.icon}`}
-                  key={site.id}
-                >
-                  <a
-                    className="website-link"
-                    href={site.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`Open ${site.name} (opens in a new tab)`}
-                  >
-                    <div className="card-top">
-                      <span className={`platform-icon platform-${site.icon}`}>
-                        <PlatformIcon name={site.icon} />
-                      </span>
-                      <span className="card-arrow">
-                        <Icon name="external" />
-                      </span>
-                    </div>
-                    <h3>{site.name}</h3>
-                    <p>{site.description}</p>
-                    <div className="card-bottom">
-                      <span>
-                        {new URL(site.url).hostname.replace(/^www\./, '')}
-                      </span>
-                      <span className="category-label">
-                        {site.category === 'My links'
-                          ? 'Personal'
-                          : site.category}
-                      </span>
-                    </div>
+                  <h1>
+                    Good things are
+                    <br />
+                    just a <span>click away.</span>
+                  </h1>
+                  <p className="hero-description">
+                    Catch up, get inspired, or find your next rabbit hole.
+                    <br className="desktop-break" /> Open the places you love,
+                    straight from here.
+                  </p>
+                  <a className="hero-button" href="#websites">
+                    Explore your websites <Icon name="arrow" />
                   </a>
+                </div>
+                <div className="hero-art" aria-hidden="true">
+                  <div className="orbit orbit-one" />
+                  <div className="orbit orbit-two" />
+                  <span className="art-spark spark-one">✳</span>
+                  <span className="art-spark spark-two">✦</span>
+                  <div className="floating-tile tile-instagram">
+                    <PlatformIcon name="instagram" />
+                  </div>
+                  <div className="floating-tile tile-facebook">
+                    <PlatformIcon name="facebook" />
+                  </div>
+                  <div className="floating-tile tile-youtube">
+                    <PlatformIcon name="youtube" />
+                  </div>
+                  <span className="art-caption">
+                    SO MANY PLACES. ONE LAUNCHPAD.
+                  </span>
+                </div>
+              </section>
+
+              {preferences.showFavorites && (
+                <Favorites
+                  favoriteSites={favoriteSites}
+                  onOpen={openSite}
+                  editingFavorites={editingFavorites}
+                  onToggleEditing={() => setEditingFavorites(!editingFavorites)}
+                  toggleFavorite={toggleFavorite}
+                  reorderFavorite={reorderFavorite}
+                />
+              )}
+              <section
+                className="websites-section"
+                id="websites"
+                aria-labelledby="websites-title"
+              >
+                <div className="section-heading">
+                  <div>
+                    <p className="eyebrow section-eyebrow">
+                      PICK A DESTINATION
+                    </p>
+                    <h2 id="websites-title">
+                      {category === 'All websites'
+                        ? 'Your everyday internet'
+                        : category}
+                      <span className="site-count">{visibleSites.length}</span>
+                    </h2>
+                  </div>
                   <button
-                    className="favorite-button"
-                    aria-label={`${preferences.favorites.includes(site.id) ? 'Unfavorite' : 'Favorite'} ${site.name}`}
-                    aria-pressed={preferences.favorites.includes(site.id)}
-                    onClick={() => toggleFavorite(site)}
+                    className="add-button"
+                    onClick={() => {
+                      setShowForm(!showForm);
+                      setError('');
+                    }}
+                    aria-expanded={showForm}
+                    aria-controls="add-website"
                   >
-                    <Icon name="star" />
+                    <Icon name="plus" /> Add a website
                   </button>
-                  {site.category === 'My links' && (
-                    <button
-                      className="remove-button"
-                      aria-label={`Remove ${site.name}`}
-                      onClick={() => removeSite(site)}
+                </div>
+                {showForm && (
+                  <form
+                    className="add-form"
+                    id="add-website"
+                    onSubmit={addSite}
+                  >
+                    <div className="form-heading">
+                      <h3>Make room for a favorite</h3>
+                      <button
+                        type="button"
+                        className="icon-button"
+                        aria-label="Close add website form"
+                        onClick={() => setShowForm(false)}
+                      >
+                        <Icon name="close" />
+                      </button>
+                    </div>
+                    <p>
+                      Add any website. Your links are saved in this browser.
+                    </p>
+                    <div className="form-fields">
+                      <label>
+                        Website name
+                        <input
+                          autoFocus
+                          required
+                          maxLength={60}
+                          value={name}
+                          onChange={(event) => setName(event.target.value)}
+                          placeholder="e.g. My favorite blog"
+                        />
+                      </label>
+                      <label>
+                        Website address
+                        <input
+                          required
+                          value={url}
+                          onChange={(event) => setUrl(event.target.value)}
+                          placeholder="https://example.com"
+                          aria-describedby={error ? 'url-error' : undefined}
+                          aria-invalid={Boolean(error)}
+                        />
+                      </label>
+                      <button className="save-button" type="submit">
+                        Save website <Icon name="plus" />
+                      </button>
+                    </div>
+                    {error && (
+                      <p className="form-error" id="url-error" role="alert">
+                        {error}
+                      </p>
+                    )}
+                  </form>
+                )}
+                <div className="filter-row">
+                  <div
+                    className="filter-tabs"
+                    role="group"
+                    aria-label="Filter websites"
+                  >
+                    {['All websites', 'Social', 'Entertainment', 'Work'].map(
+                      (item) => (
+                        <button
+                          key={item}
+                          className={
+                            category === item
+                              ? 'filter-tab selected'
+                              : 'filter-tab'
+                          }
+                          onClick={() => setCategory(item as Category)}
+                          aria-pressed={
+                            view === 'websites' && category === item
+                          }
+                        >
+                          {item === 'All websites' ? 'All' : item}
+                        </button>
+                      ),
+                    )}
+                  </div>
+                  <label className="search-box">
+                    <Icon name="search" />
+                    <input
+                      aria-label="Search websites"
+                      placeholder="Find a website..."
+                      value={search}
+                      onChange={(event) => setSearch(event.target.value)}
+                    />
+                    {search && (
+                      <button
+                        className="icon-button"
+                        aria-label="Clear search"
+                        onClick={() => setSearch('')}
+                      >
+                        <Icon name="close" />
+                      </button>
+                    )}
+                  </label>
+                </div>
+                <div className="website-grid">
+                  {visibleSites.map((site) => (
+                    <article
+                      className={`website-card card-${site.icon}`}
+                      key={site.id}
                     >
-                      <Icon name="close" />
-                    </button>
-                  )}
-                </article>
-              ))}
-            </div>
-            {visibleSites.length === 0 && (
-              <div className="empty-state">
-                <Icon name="globe" />
-                <h3>
-                  {search
-                    ? 'No websites found'
-                    : 'Your next favorite belongs here'}
-                </h3>
-                <p>
-                  {search
-                    ? 'Try another name or website address.'
-                    : 'Use “Add a website” to save a place you love.'}
-                </p>
-              </div>
-            )}
-            <div className="destination-note">
-              <Icon name="external" />
-              <p>
-                Real websites. A fresh tab.{' '}
-                <span>Every link takes you directly to its destination.</span>
-              </p>
-            </div>
-          </section>
+                      <a
+                        className="website-link"
+                        onClick={() => openSite(site)}
+                        onAuxClick={(event) => {
+                          if (event.button === 1) openSite(site);
+                        }}
+                        href={site.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`Open ${site.name} (opens in a new tab)`}
+                      >
+                        <div className="card-top">
+                          <span
+                            className={`platform-icon platform-${site.icon}`}
+                          >
+                            <PlatformIcon name={site.icon} />
+                          </span>
+                          <span className="card-arrow">
+                            <Icon name="external" />
+                          </span>
+                        </div>
+                        <h3>{site.name}</h3>
+                        <p>{site.description}</p>
+                        <div className="card-bottom">
+                          <span>
+                            {new URL(site.url).hostname.replace(/^www\./, '')}
+                          </span>
+                          <span className="category-label">
+                            {site.category === 'My links'
+                              ? 'Personal'
+                              : site.category}
+                          </span>
+                        </div>
+                      </a>
+                      <button
+                        className="favorite-button"
+                        aria-label={`${preferences.favorites.includes(site.id) ? 'Unfavorite' : 'Favorite'} ${site.name}`}
+                        aria-pressed={preferences.favorites.includes(site.id)}
+                        onClick={() => toggleFavorite(site)}
+                      >
+                        <Icon name="star" />
+                      </button>
+                      {site.category === 'My links' && (
+                        <button
+                          className="remove-button"
+                          aria-label={`Remove ${site.name}`}
+                          onClick={() => removeSite(site)}
+                        >
+                          <Icon name="close" />
+                        </button>
+                      )}
+                    </article>
+                  ))}
+                </div>
+                {visibleSites.length === 0 && (
+                  <div className="empty-state">
+                    <Icon name="globe" />
+                    <h3>
+                      {search
+                        ? 'No websites found'
+                        : 'Your next favorite belongs here'}
+                    </h3>
+                    <p>
+                      {search
+                        ? 'Try another name or website address.'
+                        : 'Use “Add a website” to save a place you love.'}
+                    </p>
+                  </div>
+                )}
+                <div className="destination-note">
+                  <Icon name="external" />
+                  <p>
+                    Real websites. A fresh tab.{' '}
+                    <span>
+                      Every link takes you directly to its destination.
+                    </span>
+                  </p>
+                </div>
+              </section>
+            </>
+          )}
           <footer className="page-footer">
             <span>Less looking. More living.</span>
             <span>

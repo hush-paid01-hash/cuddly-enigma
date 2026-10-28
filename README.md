@@ -4,7 +4,9 @@ A responsive website launcher built with React, TypeScript, and Vite. Instagram,
 
 Search websites, filter by category, or add your own HTTP/HTTPS links. Addresses without a scheme default to HTTPS. Personal links are saved only in the current browser using local storage and can be removed from My links. Every destination uses a regular link with `target="_blank"` and `rel="noopener noreferrer"`.
 
-Use **Personalize** to choose light, dark, or device appearance, pick an accent preset, or choose a custom color. Star any built-in or personal website to add it to **Your favorites**. Select **Reorder**, then use the earlier/later arrows to arrange favorites with a mouse, touch, or keyboard. Appearance, favorites, and their order are saved in this browser; existing personal links are preserved. If storage is unavailable, changes still work for the current visit and a notice explains they could not be saved.
+Use **Settings** to choose light, dark, or device appearance, pick an accent preset, or choose a custom color. Star any built-in or personal website to add it to **Your favorites**. Select **Reorder**, then use the earlier/later arrows to arrange favorites with a mouse, touch, or keyboard. Settings also lets you hide the favorites section without losing its contents or order. Appearance, favorites, and their order are saved in this browser; existing personal links are preserved. If storage is unavailable, changes still work for the current visit and a notice explains they could not be saved.
+
+**History** shows the last 50 unique destinations opened from website cards, favorites, or History itself, newest first with a local date and time. Reopening a destination moves it to the top; links still open in new tabs. This is Launchpad activity only, not your browser’s browsing history. History is saved only in this browser. Pause recording in **Settings** (existing entries remain), or use **Clear history** and confirm to remove it. Clearing history leaves your links, favorites, and appearance intact.
 
 ## Development
 
