@@ -32,7 +32,7 @@ export function History({
         )}
       </div>
       <p className="history-description">
-        Your last 50 destinations opened from Launchpad, most recent first.
+        Your last 50 destinations opened from hush, most recent first.
         Saved only in this browser.
       </p>
       {!recording && (

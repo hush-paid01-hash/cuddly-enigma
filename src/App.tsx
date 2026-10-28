@@ -201,11 +201,11 @@ function App() {
         Skip to content
       </a>
       <aside className="sidebar" aria-label="Your space">
-        <a className="brand" href="./" aria-label="Launchpad home">
+        <a className="brand" href="./" aria-label="hush home">
           <span className="brand-symbol">
             <Icon name="arrow" />
           </span>
-          launchpad<span className="brand-dot">.</span>
+          hush<span className="brand-dot">.</span>
         </a>
         <div className="workspace-label">YOUR DAILY STARTING POINT</div>
         <nav className="navigation">
@@ -355,7 +355,7 @@ function App() {
                     <PlatformIcon name="youtube" />
                   </div>
                   <span className="art-caption">
-                    SO MANY PLACES. ONE LAUNCHPAD.
+                    SO MANY PLACES. ONE HUSH.
                   </span>
                 </div>
               </section>

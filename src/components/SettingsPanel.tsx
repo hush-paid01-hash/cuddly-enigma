@@ -135,7 +135,7 @@ export function SettingsPanel({
           <span>
             <strong>Remember recently opened websites</strong>
             <small>
-              Save the last 50 destinations opened from Launchpad in this
+              Save the last 50 destinations opened from hush in this
               browser only. Turning this off keeps existing history.
             </small>
           </span>
