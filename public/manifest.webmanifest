@@ -1,0 +1,13 @@
+{
+  "name": "hush — Your everyday internet",
+  "short_name": "hush",
+  "description": "Your favorite places, together in one calm space.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8f9fc",
+  "theme_color": "#7762dc",
+  "icons": [
+    { "src": "/app-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/app-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

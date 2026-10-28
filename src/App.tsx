@@ -202,12 +202,16 @@ function App() {
       </a>
       <aside className="sidebar" aria-label="Your space">
         <a className="brand" href="./" aria-label="hush home">
-          <span className="brand-symbol">
-            <Icon name="arrow" />
-          </span>
+          <img
+            className="brand-symbol"
+            src="/app-icon.svg"
+            alt=""
+            width="40"
+            height="40"
+          />
           hush<span className="brand-dot">.</span>
         </a>
-        <div className="workspace-label">YOUR DAILY STARTING POINT</div>
+        <div className="workspace-label">YOUR WORKSPACE</div>
         <nav className="navigation">
           {categories.map((item, index) => (
             <button
@@ -220,6 +224,7 @@ function App() {
               onClick={() => {
                 setCategory(item);
                 setView('websites');
+                setShowSettings(false);
               }}
               aria-pressed={view === 'websites' && category === item}
             >
@@ -276,25 +281,117 @@ function App() {
       </aside>
 
       <div className="main-shell">
-        <header className="topbar">
-          <div className="breadcrumb">
-            Your space <span>/</span>{' '}
-            <strong>
-              {showSettings
-                ? 'Settings'
-                : view === 'history'
-                  ? 'History'
-                  : category}
-            </strong>
+        <header className="browser-header">
+          <div className="tab-strip" role="group" aria-label="Workspace views">
+            <button
+              className={`browser-tab ${view === 'websites' ? 'selected' : ''}`}
+              aria-pressed={view === 'websites'}
+              onClick={() => {
+                setView('websites');
+                setShowSettings(false);
+              }}
+            >
+              <img src="/app-icon.svg" alt="" width="18" height="18" />
+              Start page
+            </button>
+            <button
+              className={`browser-tab ${view === 'history' ? 'selected' : ''}`}
+              aria-pressed={view === 'history'}
+              onClick={() => {
+                setView('history');
+                setShowSettings(false);
+              }}
+            >
+              <Icon name="history" /> History
+            </button>
+            <button
+              className="toolbar-button new-website"
+              aria-label="Add a website"
+              aria-expanded={showForm}
+              aria-controls="add-website"
+              title="Add a website"
+              onClick={() => {
+                setView('websites');
+                setShowSettings(false);
+                setShowForm(true);
+                setError('');
+                requestAnimationFrame(() =>
+                  document.getElementById('add-website')?.scrollIntoView({
+                    block: 'center',
+                  }),
+                );
+              }}
+            >
+              <Icon name="plus" />
+            </button>
+            <span className="tab-strip-label">A little more focused.</span>
           </div>
-          <button
-            className="appearance-button"
-            onClick={() => setShowSettings(!showSettings)}
-            aria-expanded={showSettings}
-            aria-controls="settings-panel"
-          >
-            <Icon name="settings" /> <span>Settings</span>
-          </button>
+          <div className="browser-toolbar">
+            <button
+              className="toolbar-button"
+              aria-label="Go to start page"
+              title="Go to start page"
+              onClick={() => {
+                setView('websites');
+                setCategory('All websites');
+                setSearch('');
+                setShowSettings(false);
+                window.scrollTo({ top: 0 });
+              }}
+            >
+              <Icon name="home" />
+            </button>
+            <form
+              className="toolbar-search"
+              role="search"
+              onSubmit={(event) => {
+                event.preventDefault();
+                setView('websites');
+                setCategory('All websites');
+                setShowSettings(false);
+                requestAnimationFrame(() =>
+                  document.getElementById('websites')?.scrollIntoView(),
+                );
+              }}
+            >
+              <Icon name="search" />
+              <span className="search-prefix">
+                hush <span>/</span>
+              </span>
+              <input
+                aria-label="Search your websites"
+                placeholder="Search your websites"
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setView('websites');
+                  setCategory('All websites');
+                  setShowSettings(false);
+                }}
+              />
+              {search && (
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label="Clear search"
+                  onClick={() => setSearch('')}
+                >
+                  <Icon name="close" />
+                </button>
+              )}
+              <span className="search-hint" aria-hidden="true">↵</span>
+            </form>
+            <button
+              className="appearance-button"
+              aria-label="Customize your space"
+              onClick={() => setShowSettings(!showSettings)}
+              aria-expanded={showSettings}
+              aria-controls="settings-panel"
+              title="Customize your space"
+            >
+              <Icon name="settings" /> <span>Customize</span>
+            </button>
+          </div>
         </header>
         <main id="main">
           {showSettings && (
@@ -324,39 +421,34 @@ function App() {
               <section className="hero">
                 <div className="hero-copy">
                   <p className="eyebrow">
-                    <span /> A SMALL SHORTCUT TO A BIG WORLD
+                    <span /> WELCOME TO YOUR START PAGE
                   </p>
                   <h1>
-                    Good things are
+                    Your internet.
                     <br />
-                    just a <span>click away.</span>
+                    <span>A little more you.</span>
                   </h1>
                   <p className="hero-description">
-                    Catch up, get inspired, or find your next rabbit hole.
-                    <br className="desktop-break" /> Open the places you love,
-                    straight from here.
+                    Your favorite places, together in one calm space.
+                    <br className="desktop-break" /> Pick a destination. Make
+                    yourself at home.
                   </p>
                   <a className="hero-button" href="#websites">
-                    Explore your websites <Icon name="arrow" />
+                    Find your next destination <Icon name="arrow" />
                   </a>
                 </div>
                 <div className="hero-art" aria-hidden="true">
-                  <div className="orbit orbit-one" />
-                  <div className="orbit orbit-two" />
-                  <span className="art-spark spark-one">✳</span>
-                  <span className="art-spark spark-two">✦</span>
-                  <div className="floating-tile tile-instagram">
-                    <PlatformIcon name="instagram" />
-                  </div>
-                  <div className="floating-tile tile-facebook">
-                    <PlatformIcon name="facebook" />
-                  </div>
-                  <div className="floating-tile tile-youtube">
-                    <PlatformIcon name="youtube" />
-                  </div>
-                  <span className="art-caption">
-                    SO MANY PLACES. ONE HUSH.
-                  </span>
+                  <div className="icon-orbit orbit-outer" />
+                  <div className="icon-orbit orbit-inner" />
+                  <span className="orbit-dot" />
+                  <img
+                    className="hero-app-icon"
+                    src="/app-icon.svg"
+                    alt=""
+                    width="140"
+                    height="140"
+                  />
+                  <span className="art-caption">LESS NOISE. MORE POSSIBILITY.</span>
                 </div>
               </section>
 
@@ -478,24 +570,11 @@ function App() {
                       ),
                     )}
                   </div>
-                  <label className="search-box">
-                    <Icon name="search" />
-                    <input
-                      aria-label="Search websites"
-                      placeholder="Find a website..."
-                      value={search}
-                      onChange={(event) => setSearch(event.target.value)}
-                    />
-                    {search && (
-                      <button
-                        className="icon-button"
-                        aria-label="Clear search"
-                        onClick={() => setSearch('')}
-                      >
-                        <Icon name="close" />
-                      </button>
-                    )}
-                  </label>
+                  <span className="filter-summary" role="status">
+                    {visibleSites.length}{' '}
+                    {visibleSites.length === 1 ? 'website' : 'websites'}
+                    {search ? ` matching “${search}”` : ' to explore'}
+                  </span>
                 </div>
                 <div className="website-grid">
                   {visibleSites.map((site) => (
