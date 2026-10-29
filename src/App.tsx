@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Icon, PlatformIcon } from './components/Icons';
+import { Omnibox } from './components/Omnibox';
 import { SettingsPanel } from './components/SettingsPanel';
 import { History } from './components/History';
 import {
@@ -41,6 +42,7 @@ const categories = [
   'My links',
 ] as const;
 type Category = (typeof categories)[number];
+type View = 'websites' | 'history' | 'queue';
 
 function App() {
   const [catalog, setCatalog] = useState(() =>
@@ -53,9 +55,44 @@ function App() {
   const trails = catalog.trails;
   const [preferences, setPreferences] = useState(readPreferences);
   const [showSettings, setShowSettings] = useState(false);
-  const [view, setView] = useState<'websites' | 'history' | 'queue'>(
-    'websites',
-  );
+  const [navigation, setNavigation] = useState<{
+    entries: View[];
+    index: number;
+  }>({
+    entries: ['websites'],
+    index: 0,
+  });
+  const view = navigation.entries[navigation.index];
+  function setView(next: View) {
+    window.scrollTo({ top: 0 });
+    setNavigation((current) =>
+      current.entries[current.index] === next
+        ? current
+        : {
+            entries: [...current.entries.slice(0, current.index + 1), next],
+            index: current.index + 1,
+          },
+    );
+  }
+  function goHome() {
+    setView('websites');
+    setSearch('');
+    setCategory('All websites');
+    setTrailId('');
+    setShowSettings(false);
+    window.scrollTo({ top: 0 });
+  }
+  function goBackOrForward(direction: -1 | 1) {
+    setNavigation((current) => ({
+      ...current,
+      index: Math.max(
+        0,
+        Math.min(current.entries.length - 1, current.index + direction),
+      ),
+    }));
+    setShowSettings(false);
+    window.scrollTo({ top: 0 });
+  }
   const [queue, setQueue] = useState(readQueue);
   const [trailId, setTrailId] = useState('');
   const [history, setHistory] = useState(readHistory);
@@ -272,175 +309,132 @@ function App() {
       <a className="skip-link" href="#main">
         Skip to content
       </a>
-      <aside className="sidebar" aria-label="Your space">
-        <a className="brand" href="./" aria-label="hush home">
-          <img
-            className="brand-symbol"
-            src="/app-icon.svg"
-            alt=""
-            width="40"
-            height="40"
-          />
-          hush<span className="brand-dot">.</span>
-          <span className="version-badge">V5</span>
-        </a>
-        <div className="workspace-label">YOUR WORKSPACE</div>
-        <nav className="navigation">
-          {categories.map((item, index) => (
-            <button
-              key={item}
-              className={
-                view === 'websites' && category === item
-                  ? 'nav-item active'
-                  : 'nav-item'
-              }
-              onClick={() => {
-                setCategory(item);
-                setTrailId('');
-                setSearch('');
-                setView('websites');
-                setShowSettings(false);
-              }}
-              aria-pressed={view === 'websites' && category === item}
-            >
-              <Icon
-                name={
-                  [
-                    'grid',
-                    'people',
-                    'play',
-                    'briefcase',
-                    'globe',
-                    'palette',
-                    'monitor',
-                    'link',
-                  ][index]
-                }
-              />
-              <span>{item}</span>
-              {item === 'All websites' && (
-                <span className="nav-count">{sites.length}</span>
-              )}
-              {item === 'My links' && savedSites.length > 0 && (
-                <span className="nav-count">{savedSites.length}</span>
-              )}
-            </button>
-          ))}
-          <button
-            className={view === 'queue' ? 'nav-item active' : 'nav-item'}
-            aria-pressed={view === 'queue'}
-            onClick={() => {
-              setView('queue');
-              setShowSettings(false);
-            }}
-          >
-            <Icon name="check" />
-            <span>Next up</span>
-            <span className="nav-count">{queuedSites.length}</span>
-          </button>
-          <button
-            className={view === 'history' ? 'nav-item active' : 'nav-item'}
-            aria-pressed={view === 'history'}
-            onClick={() => {
-              setView('history');
-              setShowSettings(false);
-            }}
-          >
-            <Icon name="history" />
-            <span>History</span>
-          </button>
-          <button
-            className={showSettings ? 'nav-item active' : 'nav-item'}
-            aria-expanded={showSettings}
-            aria-controls="settings-panel"
-            onClick={() => setShowSettings(!showSettings)}
-          >
-            <Icon name="settings" />
-            <span>Settings</span>
-          </button>
-        </nav>
-        <div className="sidebar-note">
-          <span className="note-icon">
-            <Icon name="spark" />
-          </span>
-          <h3>
-            A little less searching.
-            <br />A lot more exploring.
-          </h3>
-          <p>Your favorite places on the web, all within reach.</p>
-          <span className="note-doodle" aria-hidden="true">
-            ↗
-          </span>
-        </div>
-        <div className="sidebar-footer">
-          <span className="status-dot" />
-          Your internet, one click away.
-        </div>
-      </aside>
-
       <div className="main-shell">
         <header className="workspace-header">
-          <div className="workspace-toolbar">
-            <div className="workspace-title">
-              <span className="status-dot" />
-              <span>Your space</span>
-              <span className="workspace-subtitle">A little more focused.</span>
-            </div>
-            <form
-              className="toolbar-search"
-              role="search"
-              onSubmit={(event) => {
-                event.preventDefault();
-                setView('websites');
-                setCategory('All websites');
-                setTrailId('');
-                setShowSettings(false);
-                requestAnimationFrame(() =>
-                  document.getElementById('websites')?.scrollIntoView(),
-                );
-              }}
-            >
-              <Icon name="search" />
-              <span className="search-prefix">
-                hush <span>/</span>
-              </span>
-              <input
-                aria-label="Search your websites"
-                placeholder="Search websites, topics, or tasks"
-                value={search}
-                onChange={(event) => {
-                  setSearch(event.target.value);
-                  setView('websites');
-                  setCategory('All websites');
-                  setTrailId('');
-                  setShowSettings(false);
-                }}
-              />
-              {search && (
+          <div className="browser-tabstrip">
+            <nav className="browser-pages" aria-label="Browser pages">
+              {(
+                [
+                  ['websites', 'Explore', 'globe'],
+                  ['history', 'History', 'history'],
+                  ['queue', 'Next up', 'check'],
+                ] as const
+              ).map(([page, label, icon]) => (
                 <button
-                  type="button"
-                  className="icon-button"
-                  aria-label="Clear search"
-                  onClick={() => setSearch('')}
+                  key={page}
+                  className={`browser-tab ${view === page ? 'is-active' : ''}`}
+                  aria-current={view === page ? 'page' : undefined}
+                  onClick={() => {
+                    setView(page);
+                    setShowSettings(false);
+                  }}
                 >
-                  <Icon name="close" />
+                  <Icon name={icon} />
+                  <span>{label}</span>
+                  {page === 'queue' && (
+                    <span className="tab-count">{queuedSites.length}</span>
+                  )}
                 </button>
-              )}
-              <span className="search-hint" aria-hidden="true">
-                ↵
-              </span>
-            </form>
+              ))}
+            </nav>
+            <span className="browser-wordmark">
+              <img src="/app-icon.svg" alt="" width="20" height="20" /> hush
+            </span>
+          </div>
+          <div className="workspace-toolbar">
+            <div
+              className="browser-navigation"
+              role="group"
+              aria-label="Page navigation"
+            >
+              <button
+                className="browser-control"
+                aria-label="Back"
+                title="Back"
+                disabled={navigation.index === 0}
+                onClick={() => goBackOrForward(-1)}
+              >
+                <Icon name="back" />
+              </button>
+              <button
+                className="browser-control"
+                aria-label="Forward"
+                title="Forward"
+                disabled={navigation.index === navigation.entries.length - 1}
+                onClick={() => goBackOrForward(1)}
+              >
+                <Icon name="arrow" />
+              </button>
+              <button
+                className="browser-control"
+                aria-label="Home"
+                title="Home"
+                onClick={goHome}
+              >
+                <Icon name="home" />
+              </button>
+            </div>
+            <Omnibox onOpen={openSite} />
             <button
-              className="appearance-button"
-              aria-label="Customize your space"
-              onClick={() => setShowSettings(!showSettings)}
+              className="browser-control customize-control"
+              aria-label="Customize hush"
+              title="Customize hush"
+              onClick={() => {
+                setShowSettings(!showSettings);
+                if (!showSettings)
+                  requestAnimationFrame(() =>
+                    document
+                      .getElementById('settings-panel')
+                      ?.scrollIntoView({ block: 'start' }),
+                  );
+              }}
               aria-expanded={showSettings}
               aria-controls="settings-panel"
-              title="Customize your space"
             >
-              <Icon name="settings" /> <span>Customize</span>
+              <Icon name="settings" />
             </button>
           </div>
+          <nav className="bookmarks-bar" aria-label="Website collections">
+            {categories.map((item, index) => (
+              <button
+                key={item}
+                className={
+                  view === 'websites' && category === item
+                    ? 'bookmark-item selected'
+                    : 'bookmark-item'
+                }
+                aria-pressed={view === 'websites' && category === item}
+                onClick={() => {
+                  setCategory(item);
+                  setTrailId('');
+                  setSearch('');
+                  setView('websites');
+                  setShowSettings(false);
+                  requestAnimationFrame(() =>
+                    document
+                      .getElementById('websites')
+                      ?.scrollIntoView({ block: 'start' }),
+                  );
+                }}
+              >
+                <Icon
+                  name={
+                    [
+                      'grid',
+                      'people',
+                      'play',
+                      'briefcase',
+                      'globe',
+                      'palette',
+                      'monitor',
+                      'link',
+                    ][index]
+                  }
+                />
+                {item === 'All websites' ? 'All bookmarks' : item}
+              </button>
+            ))}
+          </nav>
         </header>
         <main id="main">
           {showSettings && (
@@ -512,39 +506,61 @@ function App() {
             />
           ) : (
             <>
-              <section className="hero">
-                <div className="hero-copy">
-                  <p className="eyebrow">
-                    <span /> WELCOME TO HUSH V5
-                  </p>
-                  <h1>
-                    Your internet.
-                    <br />
-                    <span>More possibility.</span>
-                  </h1>
-                  <p className="hero-description">
-                    Useful corners of the web. A clear next step.
-                    <br className="desktop-break" /> Explore a task trail. Save
-                    something worth trying.
-                  </p>
-                  <a className="hero-button" href="#websites">
-                    Find your next destination <Icon name="arrow" />
-                  </a>
-                </div>
-                <div className="hero-art" aria-hidden="true">
-                  <div className="icon-orbit orbit-outer" />
-                  <div className="icon-orbit orbit-inner" />
-                  <span className="orbit-dot" />
-                  <img
-                    className="hero-app-icon"
-                    src="/app-icon.svg"
-                    alt=""
-                    width="140"
-                    height="140"
-                  />
-                  <span className="art-caption">
-                    LESS NOISE. MORE POSSIBILITY.
-                  </span>
+              <section className="hero" aria-labelledby="start-title">
+                <p className="start-eyebrow">
+                  A LITTLE SPACE FOR YOUR EVERYDAY INTERNET
+                </p>
+                <h1 id="start-title" className="start-wordmark">
+                  hush<span>.</span>
+                </h1>
+                <p className="hero-description">
+                  Less noise. More of the web you love.
+                </p>
+                <Omnibox prominent onOpen={openSite} />
+                <p className="start-caption">
+                  Search with Google · Your links, always within reach
+                </p>
+                <div
+                  className="start-shortcuts"
+                  role="group"
+                  aria-label="Quick access"
+                >
+                  {(preferences.showFavorites ? favoriteSites : [])
+                    .slice(0, 5)
+                    .map((site) => (
+                      <a
+                        key={site.id}
+                        href={site.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`Open ${site.name} (${destinationHint})`}
+                        onClick={() => openSite(site)}
+                        onAuxClick={(event) => {
+                          if (event.button === 1) openSite(site);
+                        }}
+                      >
+                        <span className={`shortcut-icon platform-${site.icon}`}>
+                          <PlatformIcon name={site.icon} />
+                        </span>
+                        <span>{site.name}</span>
+                      </a>
+                    ))}
+                  <button
+                    onClick={() => {
+                      setShowForm(true);
+                      setError('');
+                      requestAnimationFrame(() =>
+                        document
+                          .getElementById('add-website')
+                          ?.scrollIntoView({ block: 'center' }),
+                      );
+                    }}
+                  >
+                    <span className="shortcut-icon">
+                      <Icon name="plus" />
+                    </span>
+                    <span>Add shortcut</span>
+                  </button>
                 </div>
               </section>
 
@@ -707,6 +723,27 @@ function App() {
                     )}
                   </form>
                 )}
+                <label className="catalog-search">
+                  <Icon name="search" />
+                  <input
+                    aria-label="Filter your websites"
+                    placeholder="Find a bookmark, topic, or task"
+                    value={search}
+                    onChange={(event) => {
+                      setSearch(event.target.value);
+                      setTrailId('');
+                    }}
+                  />
+                  {search && (
+                    <button
+                      className="browser-control"
+                      aria-label="Clear bookmark filter"
+                      onClick={() => setSearch('')}
+                    >
+                      <Icon name="close" />
+                    </button>
+                  )}
+                </label>
                 <div className="filter-row">
                   <div
                     className="filter-tabs"
@@ -844,7 +881,7 @@ function App() {
           <footer className="page-footer">
             <span>Less looking. More living.</span>
             <span>
-              hush V5 · Made for your everyday internet{' '}
+              hush · Made for your everyday internet{' '}
               <span className="footer-spark">✳</span>
             </span>
           </footer>

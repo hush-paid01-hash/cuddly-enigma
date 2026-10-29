@@ -53,6 +53,7 @@ export function Icon({ name }: { name: string }) {
     ),
     left: <path d="m14 6-6 6 6 6" />,
     right: <path d="m10 6 6 6-6 6" />,
+    back: <path d="M19 12H5m6-6-6 6 6 6" />,
     arrow: <path d="M5 12h14m-6-6 6 6-6 6" />,
     external: (
       <>

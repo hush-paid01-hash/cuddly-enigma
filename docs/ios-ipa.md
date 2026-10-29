@@ -83,7 +83,10 @@ IPA. Never commit certificates, private keys, provisioning profiles, or IPAs.
 
 On 2026-10-29, the macOS build from PR #9 was downloaded and verified. That
 workflow finished after the original development session; a new build was not
-needed for the unchanged app source.
+needed for the app source at that point. This artifact predates the subsequent
+browser interface refresh; it does not include that refresh. Download a new
+artifact from a successful **Build iOS IPA** run for the updated commit to install
+the new interface.
 
 - [Download `hush-ios-unsigned-1`](https://github.com/hush-paid01-hash/cuddly-enigma/actions/runs/40932899783/artifacts/12923586720)
   from the [successful device build](https://github.com/hush-paid01-hash/cuddly-enigma/actions/runs/40932899783).
