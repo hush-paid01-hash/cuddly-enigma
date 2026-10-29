@@ -281,66 +281,13 @@ function App() {
       </aside>
 
       <div className="main-shell">
-        <header className="browser-header">
-          <div className="tab-strip" role="group" aria-label="Workspace views">
-            <button
-              className={`browser-tab ${view === 'websites' ? 'selected' : ''}`}
-              aria-pressed={view === 'websites'}
-              onClick={() => {
-                setView('websites');
-                setShowSettings(false);
-              }}
-            >
-              <img src="/app-icon.svg" alt="" width="18" height="18" />
-              Start page
-            </button>
-            <button
-              className={`browser-tab ${view === 'history' ? 'selected' : ''}`}
-              aria-pressed={view === 'history'}
-              onClick={() => {
-                setView('history');
-                setShowSettings(false);
-              }}
-            >
-              <Icon name="history" /> History
-            </button>
-            <button
-              className="toolbar-button new-website"
-              aria-label="Add a website"
-              aria-expanded={showForm}
-              aria-controls="add-website"
-              title="Add a website"
-              onClick={() => {
-                setView('websites');
-                setShowSettings(false);
-                setShowForm(true);
-                setError('');
-                requestAnimationFrame(() =>
-                  document.getElementById('add-website')?.scrollIntoView({
-                    block: 'center',
-                  }),
-                );
-              }}
-            >
-              <Icon name="plus" />
-            </button>
-            <span className="tab-strip-label">A little more focused.</span>
-          </div>
-          <div className="browser-toolbar">
-            <button
-              className="toolbar-button"
-              aria-label="Go to start page"
-              title="Go to start page"
-              onClick={() => {
-                setView('websites');
-                setCategory('All websites');
-                setSearch('');
-                setShowSettings(false);
-                window.scrollTo({ top: 0 });
-              }}
-            >
-              <Icon name="home" />
-            </button>
+        <header className="workspace-header">
+          <div className="workspace-toolbar">
+            <div className="workspace-title">
+              <span className="status-dot" />
+              <span>Your space</span>
+              <span className="workspace-subtitle">A little more focused.</span>
+            </div>
             <form
               className="toolbar-search"
               role="search"
