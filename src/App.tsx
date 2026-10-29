@@ -8,6 +8,17 @@ import {
   saveHistory,
   type HistoryEntry,
 } from './lib/history';
+import { NextUp } from './components/NextUp';
+import {
+  discoverSites,
+  trails,
+  readQueue,
+  saveQueue,
+  toggleQueued,
+  updateQueueNote,
+  resolveQueue,
+  type QueueEntry,
+} from './lib/discovery';
 import { Favorites } from './components/Favorites';
 import {
   defaultSites,
@@ -28,6 +39,9 @@ const categories = [
   'Social',
   'Entertainment',
   'Work',
+  'Learn',
+  'Create',
+  'Everyday',
   'My links',
 ] as const;
 type Category = (typeof categories)[number];
@@ -35,7 +49,11 @@ type Category = (typeof categories)[number];
 function App() {
   const [preferences, setPreferences] = useState(readPreferences);
   const [showSettings, setShowSettings] = useState(false);
-  const [view, setView] = useState<'websites' | 'history'>('websites');
+  const [view, setView] = useState<'websites' | 'history' | 'queue'>(
+    'websites',
+  );
+  const [queue, setQueue] = useState(readQueue);
+  const [trailId, setTrailId] = useState('');
   const [history, setHistory] = useState(readHistory);
   const [editingFavorites, setEditingFavorites] = useState(false);
   const [savedSites, setSavedSites] = useState<Site[]>(readSavedSites);
@@ -123,13 +141,26 @@ function App() {
     );
   }
 
-  const visibleSites = sites.filter(
-    (site) =>
-      (category === 'All websites' || site.category === category) &&
-      `${site.name} ${site.url}`
-        .toLowerCase()
-        .includes(search.toLowerCase().trim()),
-  );
+  const visibleSites = discoverSites(sites, category, search, trailId);
+  const queuedSites = resolveQueue(queue, sites);
+
+  function updateQueue(next: QueueEntry[], message: string) {
+    setQueue(next);
+    const persisted = saveQueue(next);
+    setNotice(
+      persisted
+        ? message
+        : 'Next up updated for this visit only; your browser could not save it.',
+    );
+  }
+
+  function toggleNextUp(site: Site) {
+    const exists = queue.some((entry) => entry.siteId === site.id);
+    updateQueue(
+      toggleQueued(queue, site.id),
+      `${site.name} ${exists ? 'removed from' : 'added to'} Next up.`,
+    );
+  }
 
   function updateSavedSites(next: Site[]) {
     setSavedSites(next);
@@ -170,6 +201,7 @@ function App() {
     setUrl('');
     setShowForm(false);
     setCategory('My links');
+    setTrailId('');
     setSearch('');
     setNotice(
       persisted
@@ -188,8 +220,11 @@ function App() {
     };
     const favoritesPersisted = savePreferences(nextPreferences);
     setPreferences(nextPreferences);
+    const nextQueue = queue.filter((entry) => entry.siteId !== site.id);
+    setQueue(nextQueue);
+    const queuePersisted = saveQueue(nextQueue);
     setNotice(
-      persisted && favoritesPersisted
+      persisted && favoritesPersisted && queuePersisted
         ? `${site.name} removed.`
         : `${site.name} removed for this visit. Your browser could not save the change.`,
     );
@@ -210,6 +245,7 @@ function App() {
             height="40"
           />
           hush<span className="brand-dot">.</span>
+          <span className="version-badge">V5</span>
         </a>
         <div className="workspace-label">YOUR WORKSPACE</div>
         <nav className="navigation">
@@ -223,13 +259,26 @@ function App() {
               }
               onClick={() => {
                 setCategory(item);
+                setTrailId('');
+                setSearch('');
                 setView('websites');
                 setShowSettings(false);
               }}
               aria-pressed={view === 'websites' && category === item}
             >
               <Icon
-                name={['grid', 'people', 'play', 'briefcase', 'link'][index]}
+                name={
+                  [
+                    'grid',
+                    'people',
+                    'play',
+                    'briefcase',
+                    'globe',
+                    'palette',
+                    'monitor',
+                    'link',
+                  ][index]
+                }
               />
               <span>{item}</span>
               {item === 'All websites' && (
@@ -240,6 +289,18 @@ function App() {
               )}
             </button>
           ))}
+          <button
+            className={view === 'queue' ? 'nav-item active' : 'nav-item'}
+            aria-pressed={view === 'queue'}
+            onClick={() => {
+              setView('queue');
+              setShowSettings(false);
+            }}
+          >
+            <Icon name="check" />
+            <span>Next up</span>
+            <span className="nav-count">{queuedSites.length}</span>
+          </button>
           <button
             className={view === 'history' ? 'nav-item active' : 'nav-item'}
             aria-pressed={view === 'history'}
@@ -295,6 +356,7 @@ function App() {
                 event.preventDefault();
                 setView('websites');
                 setCategory('All websites');
+                setTrailId('');
                 setShowSettings(false);
                 requestAnimationFrame(() =>
                   document.getElementById('websites')?.scrollIntoView(),
@@ -307,12 +369,13 @@ function App() {
               </span>
               <input
                 aria-label="Search your websites"
-                placeholder="Search your websites"
+                placeholder="Search websites, topics, or tasks"
                 value={search}
                 onChange={(event) => {
                   setSearch(event.target.value);
                   setView('websites');
                   setCategory('All websites');
+                  setTrailId('');
                   setShowSettings(false);
                 }}
               />
@@ -326,7 +389,9 @@ function App() {
                   <Icon name="close" />
                 </button>
               )}
-              <span className="search-hint" aria-hidden="true">↵</span>
+              <span className="search-hint" aria-hidden="true">
+                ↵
+              </span>
             </form>
             <button
               className="appearance-button"
@@ -355,7 +420,30 @@ function App() {
           <p className="notice" role="status">
             {notice}
           </p>
-          {view === 'history' ? (
+          {view === 'queue' ? (
+            <NextUp
+              entries={queuedSites}
+              onOpen={openSite}
+              onNote={(id, note) =>
+                updateQueue(
+                  updateQueueNote(queue, id, note),
+                  'Next step saved.',
+                )
+              }
+              onFinish={(site) =>
+                updateQueue(
+                  queue.filter((entry) => entry.siteId !== site.id),
+                  `${site.name} marked done. Removed from Next up.`,
+                )
+              }
+              onExplore={() => {
+                setView('websites');
+                setCategory('All websites');
+                setTrailId('');
+                setSearch('');
+              }}
+            />
+          ) : view === 'history' ? (
             <History
               entries={history}
               recording={preferences.rememberHistory}
@@ -368,17 +456,17 @@ function App() {
               <section className="hero">
                 <div className="hero-copy">
                   <p className="eyebrow">
-                    <span /> WELCOME TO YOUR START PAGE
+                    <span /> WELCOME TO HUSH V5
                   </p>
                   <h1>
                     Your internet.
                     <br />
-                    <span>A little more you.</span>
+                    <span>More possibility.</span>
                   </h1>
                   <p className="hero-description">
-                    Your favorite places, together in one calm space.
-                    <br className="desktop-break" /> Pick a destination. Make
-                    yourself at home.
+                    Useful corners of the web. A clear next step.
+                    <br className="desktop-break" /> Explore a task trail. Save
+                    something worth trying.
                   </p>
                   <a className="hero-button" href="#websites">
                     Find your next destination <Icon name="arrow" />
@@ -395,10 +483,60 @@ function App() {
                     width="140"
                     height="140"
                   />
-                  <span className="art-caption">LESS NOISE. MORE POSSIBILITY.</span>
+                  <span className="art-caption">
+                    LESS NOISE. MORE POSSIBILITY.
+                  </span>
                 </div>
               </section>
 
+              <section
+                className="trails-section"
+                aria-labelledby="trails-title"
+              >
+                <div className="section-heading">
+                  <div>
+                    <p className="eyebrow section-eyebrow">
+                      START WITH A PURPOSE
+                    </p>
+                    <h2 id="trails-title">What do you want to do?</h2>
+                  </div>
+                  <button
+                    className="add-button"
+                    onClick={() => {
+                      setView('queue');
+                      requestAnimationFrame(() =>
+                        document.getElementById('next-up-title')?.focus(),
+                      );
+                    }}
+                  >
+                    Next up <span>{queuedSites.length}</span>
+                    <Icon name="arrow" />
+                  </button>
+                </div>
+                <div className="trails-grid">
+                  {trails.map((trail, index) => (
+                    <button
+                      className={`trail-card ${trailId === trail.id ? 'selected' : ''}`}
+                      key={trail.id}
+                      aria-pressed={trailId === trail.id}
+                      onClick={() => {
+                        setTrailId(trail.id);
+                        setCategory('All websites');
+                        setSearch('');
+                        requestAnimationFrame(() =>
+                          document.getElementById('websites-title')?.focus(),
+                        );
+                      }}
+                    >
+                      <span className="trail-number">
+                        0{index + 1} <Icon name="arrow" />
+                      </span>
+                      <strong>{trail.name}</strong>
+                      <small>{trail.sites.length} steps to explore</small>
+                    </button>
+                  ))}
+                </div>
+              </section>
               {preferences.showFavorites && (
                 <Favorites
                   favoriteSites={favoriteSites}
@@ -419,10 +557,12 @@ function App() {
                     <p className="eyebrow section-eyebrow">
                       PICK A DESTINATION
                     </p>
-                    <h2 id="websites-title">
-                      {category === 'All websites'
-                        ? 'Your everyday internet'
-                        : category}
+                    <h2 id="websites-title" tabIndex={-1}>
+                      {trailId
+                        ? trails.find((trail) => trail.id === trailId)?.name
+                        : category === 'All websites'
+                          ? 'Your everyday internet'
+                          : category}
                       <span className="site-count">{visibleSites.length}</span>
                     </h2>
                   </div>
@@ -438,6 +578,22 @@ function App() {
                     <Icon name="plus" /> Add a website
                   </button>
                 </div>
+                {trailId && (
+                  <div className="trail-detail">
+                    <p>
+                      {
+                        trails.find((trail) => trail.id === trailId)
+                          ?.description
+                      }
+                    </p>
+                    <button
+                      className="add-button"
+                      onClick={() => setTrailId('')}
+                    >
+                      Exit trail <Icon name="close" />
+                    </button>
+                  </div>
+                )}
                 {showForm && (
                   <form
                     className="add-form"
@@ -498,24 +654,23 @@ function App() {
                     role="group"
                     aria-label="Filter websites"
                   >
-                    {['All websites', 'Social', 'Entertainment', 'Work'].map(
-                      (item) => (
-                        <button
-                          key={item}
-                          className={
-                            category === item
-                              ? 'filter-tab selected'
-                              : 'filter-tab'
-                          }
-                          onClick={() => setCategory(item as Category)}
-                          aria-pressed={
-                            view === 'websites' && category === item
-                          }
-                        >
-                          {item === 'All websites' ? 'All' : item}
-                        </button>
-                      ),
-                    )}
+                    {categories.map((item) => (
+                      <button
+                        key={item}
+                        className={
+                          category === item
+                            ? 'filter-tab selected'
+                            : 'filter-tab'
+                        }
+                        onClick={() => {
+                          setCategory(item as Category);
+                          setTrailId('');
+                        }}
+                        aria-pressed={view === 'websites' && category === item}
+                      >
+                        {item === 'All websites' ? 'All' : item}
+                      </button>
+                    ))}
                   </div>
                   <span className="filter-summary" role="status">
                     {visibleSites.length}{' '}
@@ -571,6 +726,23 @@ function App() {
                       >
                         <Icon name="star" />
                       </button>
+                      <button
+                        className="queue-button"
+                        aria-label={`${queue.some((entry) => entry.siteId === site.id) ? 'Remove' : 'Save'} ${site.name} ${queue.some((entry) => entry.siteId === site.id) ? 'from' : 'to'} Next up`}
+                        aria-pressed={queue.some(
+                          (entry) => entry.siteId === site.id,
+                        )}
+                        onClick={() => toggleNextUp(site)}
+                      >
+                        <Icon
+                          name={
+                            queue.some((entry) => entry.siteId === site.id)
+                              ? 'check'
+                              : 'plus'
+                          }
+                        />{' '}
+                        Next up
+                      </button>
                       {site.category === 'My links' && (
                         <button
                           className="remove-button"
@@ -593,7 +765,7 @@ function App() {
                     </h3>
                     <p>
                       {search
-                        ? 'Try another name or website address.'
+                        ? 'Try a topic like coding, maps, or books. Exit the trail or choose All to broaden your search.'
                         : 'Use “Add a website” to save a place you love.'}
                     </p>
                   </div>
@@ -613,7 +785,7 @@ function App() {
           <footer className="page-footer">
             <span>Less looking. More living.</span>
             <span>
-              Made for your everyday internet{' '}
+              hush V5 · Made for your everyday internet{' '}
               <span className="footer-spark">✳</span>
             </span>
           </footer>
