@@ -17,6 +17,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: python3 -m unittest discover -s tests -p 'test_ios_build.py'
       - run: npm test
       - run: npm run lint
       - run: npm run build

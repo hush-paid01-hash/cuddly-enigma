@@ -42,13 +42,16 @@ The workflow in `.github/workflows/aws.yml` builds the static site and deploys `
 
 Set repository variables `AWS_REGION` and `AWS_S3_BUCKET`. Optionally set `CLOUDFRONT_DISTRIBUTION_ID` to invalidate a distribution after deployment. Configure the `AWS_ROLE_TO_ASSUME` secret for OIDC authentication, or both `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
 
-## iOS app and API
+## iOS app and IPA artifacts
 
 The Capacitor iOS project in `ios/` packages this same interface and keeps personal
 data on the device. It uses a public Netlify catalog API with a bundled offline
 fallback. The website continues to work independently of the API.
 
-On macOS with Xcode 26+, run `npm run ios:sync` and `npm run ios:open`. For local
-API development, run `npm run dev:api` alongside `npm run dev`. See
-[iOS and API setup](docs/ios-and-api.md) for signing, deployment, API configuration,
-and the device review checklist. The API contract is in [openapi/hush.yaml](openapi/hush.yaml).
+On macOS with Xcode 26+, run `npm run ios:ipa` to build an unsigned device IPA.
+The **Build iOS IPA** GitHub Actions workflow uploads an unsigned IPA and checksum
+on pull requests, and supports a manually requested signed export when Apple
+Developer credentials are configured. Unsigned IPAs require signing before device
+installation. See [IPA artifact setup](docs/ios-ipa.md) for downloads, signing
+secrets, local commands, and verification limits, or [iOS setup](docs/ios-and-api.md)
+for running the app. IPA builds do not deploy an API.
