@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { initializeNative } from './lib/native';
 import './styles/global.css';
+import './styles/browser.css';
 
 initializeNative();
 

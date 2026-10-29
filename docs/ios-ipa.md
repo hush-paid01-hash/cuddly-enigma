@@ -79,7 +79,46 @@ Archives and export metadata stay under the ignored `ios/App/output/` directory.
 Each build clears its mode's output first so a failed build cannot upload an old
 IPA. Never commit certificates, private keys, provisioning profiles, or IPAs.
 
-## Verification status
+## Verified unsigned build for ESign
+
+On 2026-10-29, the macOS build from PR #9 was downloaded and verified. That
+workflow finished after the original development session; a new build was not
+needed for the app source at that point. This artifact predates the subsequent
+browser interface refresh; it does not include that refresh. Download a new
+artifact from a successful **Build iOS IPA** run for the updated commit to install
+the new interface.
+
+- [Download `hush-ios-unsigned-1`](https://github.com/hush-paid01-hash/cuddly-enigma/actions/runs/40932899783/artifacts/12923586720)
+  from the [successful device build](https://github.com/hush-paid01-hash/cuddly-enigma/actions/runs/40932899783).
+  The GitHub artifact expires on 2026-11-12 and may require GitHub sign-in.
+- Source commit: `d374a1b68f9379939fb1b41aea1d827c72b10418` (merged by PR #9).
+  Xcode 26.0.1 built version 1.0 (build 1), bundle ID `site.hushpaid.app`,
+  minimum iOS 15.0.
+- Extract the downloaded ZIP to obtain `hush-unsigned.ipa` (1,597,535 bytes)
+  and `hush-unsigned.ipa.sha256`. The IPA is also attached to issue HUS-8.
+
+The verified IPA SHA-256 is:
+
+```text
+b36b893adbb428ef11852251aa1f16b032172ea2bf281808107501c32be6167f
+```
+
+Verification checked both ZIP archives for corruption, matched the artifact ZIP
+against GitHub's digest and the IPA against its supplied checksum, and inspected
+the bundled `Info.plist` and Mach-O load commands. `Payload/App.app/App` and the
+embedded Capacitor and Cordova frameworks are ARM64 binaries with the **iOS
+device** platform (`LC_BUILD_VERSION` platform 2). All three lack code signature
+commands and encryption; no provisioning profile or signature directory is
+present. The app includes its bundled website HTML and JavaScript. This is an
+actual compiled device IPA, not a simulator app or a packaging test fixture.
+
+To use it with ESign, save the extracted `.ipa` to Files, import it into ESign,
+then sign it using your own certificate and matching provisioning profile before
+installation. No Apple credentials were used or requested to create this
+unsigned artifact. ESign signing and installation on a physical device have not
+been tested in this session.
+
+## Packaging tests
 
 Web build and Capacitor synchronization can run without Xcode. The packaging
 script tests use simulated Xcode command results to check unsigned IPA layout,
@@ -90,7 +129,7 @@ python3 -m unittest discover -s tests -p 'test_ios_build.py'
 npm run ios:sync
 ```
 
-These checks do not compile Swift or validate Apple signatures. Actual IPA
+These checks do not compile Swift or validate Apple signatures. Future IPA
 creation requires a successful macOS workflow or local Xcode build; signed IPA
 creation additionally requires the credentials above. Device installation and
 the native review checklist in [iOS setup](ios-and-api.md) remain release checks.
