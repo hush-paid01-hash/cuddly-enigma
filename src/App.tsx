@@ -11,7 +11,6 @@ import {
 import { NextUp } from './components/NextUp';
 import {
   discoverSites,
-  trails,
   readQueue,
   saveQueue,
   toggleQueued,
@@ -20,12 +19,9 @@ import {
   type QueueEntry,
 } from './lib/discovery';
 import { Favorites } from './components/Favorites';
-import {
-  defaultSites,
-  readSavedSites,
-  normalizeUrl,
-  type Site,
-} from './lib/sites';
+import { readSavedSites, normalizeUrl, type Site } from './lib/sites';
+import { bundledCatalog, fetchCatalog, readCatalog } from './lib/catalog';
+import { destinationHint, isNative, updateNativeTheme } from './lib/native';
 
 import {
   moveFavorite,
@@ -47,6 +43,14 @@ const categories = [
 type Category = (typeof categories)[number];
 
 function App() {
+  const [catalog, setCatalog] = useState(() =>
+    isNative ? readCatalog() : bundledCatalog,
+  );
+  const [catalogStatus, setCatalogStatus] = useState<
+    'loading' | 'online' | 'offline'
+  >('loading');
+  const [catalogAttempt, setCatalogAttempt] = useState(0);
+  const trails = catalog.trails;
   const [preferences, setPreferences] = useState(readPreferences);
   const [showSettings, setShowSettings] = useState(false);
   const [view, setView] = useState<'websites' | 'history' | 'queue'>(
@@ -64,12 +68,40 @@ function App() {
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const sites = [...defaultSites, ...savedSites];
+  const sites = [...catalog.sites, ...savedSites];
   const favoriteSites = preferences.favorites.flatMap((id) => {
     const site = sites.find((item) => item.id === id);
     return site ? [site] : [];
   });
   const favoriteIds = favoriteSites.map((site) => site.id);
+
+  useEffect(() => {
+    if (!isNative) return;
+    let active = true;
+    void fetchCatalog(
+      import.meta.env.VITE_API_BASE_URL ??
+        'https://hushpaid.netlify.app/api/v1',
+    )
+      .then((next) => {
+        if (!active) return;
+        setCatalog(next);
+        setCatalogStatus('online');
+      })
+      .catch(() => {
+        if (active) setCatalogStatus('offline');
+      });
+    return () => {
+      active = false;
+    };
+  }, [catalogAttempt]);
+
+  useEffect(() => {
+    if (!isNative) return;
+    const failed = () =>
+      setNotice('This website could not open. Please try again.');
+    window.addEventListener('hush:link-error', failed);
+    return () => window.removeEventListener('hush:link-error', failed);
+  }, []);
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)');
@@ -80,6 +112,7 @@ function App() {
             ? 'dark'
             : 'light'
           : preferences.mode;
+      updateNativeTheme(document.documentElement.dataset.theme === 'dark');
     };
     applyTheme();
     media.addEventListener('change', applyTheme);
@@ -141,7 +174,7 @@ function App() {
     );
   }
 
-  const visibleSites = discoverSites(sites, category, search, trailId);
+  const visibleSites = discoverSites(sites, category, search, trailId, trails);
   const queuedSites = resolveQueue(queue, sites);
 
   function updateQueue(next: QueueEntry[], message: string) {
@@ -189,7 +222,11 @@ function App() {
     const persisted = updateSavedSites([
       ...savedSites,
       {
-        id: crypto.randomUUID(),
+        id:
+          crypto.randomUUID?.() ??
+          Array.from(crypto.getRandomValues(new Uint32Array(4)), (part) =>
+            part.toString(16),
+          ).join('-'),
         name: name.trim(),
         url: destination,
         description: 'Your own little corner of the internet.',
@@ -420,6 +457,28 @@ function App() {
           <p className="notice" role="status">
             {notice}
           </p>
+          {isNative && (
+            <div className="mobile-catalog" role="status">
+              <span>
+                {catalogStatus === 'loading'
+                  ? 'Checking for catalog updates…'
+                  : catalogStatus === 'online'
+                    ? 'Catalog up to date. Your personal data stays on this device.'
+                    : 'Using the on-device catalog. Your links and settings are available.'}
+              </span>
+              {catalogStatus === 'offline' && (
+                <button
+                  className="add-button"
+                  onClick={() => {
+                    setCatalogStatus('loading');
+                    setCatalogAttempt((value) => value + 1);
+                  }}
+                >
+                  Retry update
+                </button>
+              )}
+            </div>
+          )}
           {view === 'queue' ? (
             <NextUp
               entries={queuedSites}
@@ -693,7 +752,7 @@ function App() {
                         href={site.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        aria-label={`Open ${site.name} (opens in a new tab)`}
+                        aria-label={`Open ${site.name} (${destinationHint})`}
                       >
                         <div className="card-top">
                           <span

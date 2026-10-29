@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Icon } from './Icons';
 import type { HistoryEntry } from '../lib/history';
+import { destinationHint } from '../lib/native';
 
 type HistoryProps = {
   entries: HistoryEntry[];
@@ -70,7 +71,7 @@ export function History({
                 href={entry.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label={`Reopen ${entry.name} (opens in a new tab)`}
+                aria-label={`Reopen ${entry.name} (${destinationHint})`}
                 onClick={() => onOpen(entry)}
                 onAuxClick={(event) => {
                   if (event.button === 1) onOpen(entry);

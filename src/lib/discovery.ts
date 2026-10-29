@@ -1,6 +1,13 @@
 import type { Site } from './sites';
 
-export const trails = [
+export type Trail = {
+  id: string;
+  name: string;
+  description: string;
+  sites: readonly string[];
+};
+
+export const trails: Trail[] = [
   {
     id: 'research',
     name: 'Research a question',
@@ -29,15 +36,16 @@ export const trails = [
       'Break down a task → check the time → explore the map → sketch your plan.',
     sites: ['goblin-tools', 'time-and-date', 'openstreetmap', 'excalidraw'],
   },
-] as const;
+];
 
 export function discoverSites(
   sites: Site[],
   category: string,
   query: string,
   trailId = '',
+  availableTrails: Trail[] = trails,
 ) {
-  const trail = trails.find((item) => item.id === trailId);
+  const trail = availableTrails.find((item) => item.id === trailId);
   const terms = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
   const candidates = trail
     ? trail.sites.flatMap((id) => sites.find((site) => site.id === id) ?? [])

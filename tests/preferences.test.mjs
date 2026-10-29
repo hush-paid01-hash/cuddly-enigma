@@ -65,6 +65,7 @@ test('validates saved preferences independently and preserves an empty favorites
   );
   assert.deepEqual(readPreferences(), {
     ...defaultPreferences,
+    mode: 'system',
     accent: '#000000',
   });
   delete globalThis.localStorage;
