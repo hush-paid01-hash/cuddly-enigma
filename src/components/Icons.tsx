@@ -2,6 +2,19 @@ import type { ReactNode } from 'react';
 
 export function Icon({ name }: { name: string }) {
   const paths: Record<string, ReactNode> = {
+    timer: (
+      <>
+        <circle cx="12" cy="13" r="8" />
+        <path d="M9 2h6m-3 3V2m0 7v5l3 2m3-10 2-2" />
+      </>
+    ),
+    note: (
+      <>
+        <path d="M14 3H5v18h14V8Z" />
+        <path d="M14 3v5h5M8 12h8m-8 4h5" />
+      </>
+    ),
+    pause: <path d="M9 5v14M15 5v14" />,
     home: (
       <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z" />
     ),
