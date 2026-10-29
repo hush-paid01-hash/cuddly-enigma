@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <defs>
+    <linearGradient id="body" x1="19" y1="5" x2="109" y2="124" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#a69aff"/><stop offset=".46" stop-color="#7762dc"/><stop offset="1" stop-color="#45349b"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="31" y1="5" x2="101" y2="124" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff" stop-opacity=".65"/><stop offset="1" stop-color="#fff" stop-opacity=".06"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(30 19) rotate(51) scale(92)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#e2d9ff" stop-opacity=".4"/><stop offset="1" stop-color="#b3a6ff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#body)"/>
+  <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#glow)"/>
+  <rect x="5" y="5" width="118" height="118" rx="29" stroke="url(#rim)" stroke-width="2"/>
+  <ellipse cx="64" cy="66" rx="47" ry="29" transform="rotate(-38 64 66)" stroke="#ddd5ff" stroke-opacity=".45" stroke-width="1.5"/>
+  <path d="M43 86V39M43 70c0-24 39-24 39 0v16" stroke="#302464" stroke-opacity=".22" stroke-width="12" stroke-linecap="round" transform="translate(0 3)"/>
+  <path d="M43 83V36M43 67c0-24 39-24 39 0v16" stroke="#fff" stroke-width="11" stroke-linecap="round"/>
+  <circle cx="99" cy="35" r="7" fill="#c9f4df"/>
+  <circle cx="97" cy="33" r="2" fill="#fff" fill-opacity=".7"/>
+</svg>
