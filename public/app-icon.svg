@@ -1,21 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
   <defs>
-    <linearGradient id="body" x1="19" y1="5" x2="109" y2="124" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#a69aff"/><stop offset=".46" stop-color="#7762dc"/><stop offset="1" stop-color="#45349b"/>
+    <linearGradient id="body" x1="16" y1="6" x2="108" y2="124" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fafcff"/><stop offset=".25" stop-color="#a9b2c0"/><stop offset=".48" stop-color="#e5eaf0"/><stop offset=".51" stop-color="#8c96a6"/><stop offset=".78" stop-color="#454f60"/><stop offset="1" stop-color="#a9b4c4"/>
     </linearGradient>
-    <linearGradient id="rim" x1="31" y1="5" x2="101" y2="124" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#fff" stop-opacity=".65"/><stop offset="1" stop-color="#fff" stop-opacity=".06"/>
+    <linearGradient id="rim" x1="20" y1="5" x2="104" y2="124" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff"/><stop offset=".5" stop-color="#c3ccd9"/><stop offset="1" stop-color="#313c4d"/>
     </linearGradient>
-    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(30 19) rotate(51) scale(92)" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#e2d9ff" stop-opacity=".4"/><stop offset="1" stop-color="#b3a6ff" stop-opacity="0"/>
-    </radialGradient>
+    <linearGradient id="letter" x1="45" y1="36" x2="79" y2="86" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff"/><stop offset=".5" stop-color="#f2f5fa"/><stop offset="1" stop-color="#c3ccda"/>
+    </linearGradient>
   </defs>
   <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#body)"/>
-  <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#glow)"/>
   <rect x="5" y="5" width="118" height="118" rx="29" stroke="url(#rim)" stroke-width="2"/>
-  <ellipse cx="64" cy="66" rx="47" ry="29" transform="rotate(-38 64 66)" stroke="#ddd5ff" stroke-opacity=".45" stroke-width="1.5"/>
-  <path d="M43 86V39M43 70c0-24 39-24 39 0v16" stroke="#302464" stroke-opacity=".22" stroke-width="12" stroke-linecap="round" transform="translate(0 3)"/>
-  <path d="M43 83V36M43 67c0-24 39-24 39 0v16" stroke="#fff" stroke-width="11" stroke-linecap="round"/>
-  <circle cx="99" cy="35" r="7" fill="#c9f4df"/>
-  <circle cx="97" cy="33" r="2" fill="#fff" fill-opacity=".7"/>
+  <rect x="9" y="9" width="110" height="110" rx="25" stroke="#263346" stroke-opacity=".22"/>
+  <ellipse cx="64" cy="66" rx="47" ry="29" transform="rotate(-38 64 66)" stroke="#f2f6ff" stroke-opacity=".35" stroke-width="1.5"/>
+  <path d="M43 86V39M43 70c0-24 39-24 39 0v16" stroke="#1c293e" stroke-opacity=".45" stroke-width="12" stroke-linecap="round" transform="translate(0 2)"/>
+  <path d="M43 83V36M43 67c0-24 39-24 39 0v16" stroke="url(#letter)" stroke-width="11" stroke-linecap="round"/>
+  <circle cx="99" cy="35" r="7" fill="#d4c6f5" stroke="#fff" stroke-opacity=".65"/>
+  <circle cx="97" cy="33" r="2" fill="#fff" fill-opacity=".8"/>
 </svg>
