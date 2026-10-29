@@ -9,6 +9,7 @@ import {
   saveHistory,
   type HistoryEntry,
 } from './lib/history';
+import { Tools } from './components/Tools';
 import { NextUp } from './components/NextUp';
 import {
   discoverSites,
@@ -42,7 +43,13 @@ const categories = [
   'My links',
 ] as const;
 type Category = (typeof categories)[number];
-type View = 'websites' | 'history' | 'queue';
+type View = 'websites' | 'history' | 'queue' | 'tools';
+const pages = [
+  ['websites', 'Explore', 'globe'],
+  ['history', 'History', 'history'],
+  ['queue', 'Next up', 'check'],
+  ['tools', 'Tools', 'spark'],
+] as const;
 
 function App() {
   const [catalog, setCatalog] = useState(() =>
@@ -313,13 +320,7 @@ function App() {
         <header className="workspace-header">
           <div className="browser-tabstrip">
             <nav className="browser-pages" aria-label="Browser pages">
-              {(
-                [
-                  ['websites', 'Explore', 'globe'],
-                  ['history', 'History', 'history'],
-                  ['queue', 'Next up', 'check'],
-                ] as const
-              ).map(([page, label, icon]) => (
+              {pages.map(([page, label, icon]) => (
                 <button
                   key={page}
                   className={`browser-tab ${view === page ? 'is-active' : ''}`}
@@ -339,6 +340,7 @@ function App() {
             </nav>
             <span className="browser-wordmark">
               <img src="/app-icon.svg" alt="" width="20" height="20" /> hush
+              <span className="version-badge">3.2</span>
             </span>
           </div>
           <div className="workspace-toolbar">
@@ -473,7 +475,8 @@ function App() {
               )}
             </div>
           )}
-          {view === 'queue' ? (
+          <Tools visible={view === 'tools'} />
+          {view === 'tools' ? null : view === 'queue' ? (
             <NextUp
               entries={queuedSites}
               onOpen={openSite}
@@ -508,7 +511,7 @@ function App() {
             <>
               <section className="hero" aria-labelledby="start-title">
                 <p className="start-eyebrow">
-                  A LITTLE SPACE FOR YOUR EVERYDAY INTERNET
+                  YOUR EVERYDAY, A LITTLE LIGHTER
                 </p>
                 <h1 id="start-title" className="start-wordmark">
                   hush<span>.</span>
@@ -520,6 +523,12 @@ function App() {
                 <p className="start-caption">
                   Search with Google · Your links, always within reach
                 </p>
+                <button
+                  className="hero-tools-link"
+                  onClick={() => setView('tools')}
+                >
+                  <Icon name="spark" /> Make room for focus <Icon name="arrow" />
+                </button>
                 <div
                   className="start-shortcuts"
                   role="group"
@@ -881,12 +890,27 @@ function App() {
           <footer className="page-footer">
             <span>Less looking. More living.</span>
             <span>
-              hush · Made for your everyday internet{' '}
+              hush 3.2 · Made for your everyday internet{' '}
               <span className="footer-spark">✳</span>
             </span>
           </footer>
         </main>
       </div>
+      <nav className="mobile-navigation" aria-label="App pages">
+        {pages.map(([page, label, icon]) => (
+          <button
+            key={page}
+            aria-current={view === page ? 'page' : undefined}
+            onClick={() => {
+              setView(page);
+              setShowSettings(false);
+            }}
+          >
+            <Icon name={icon} />
+            <span>{label}</span>
+          </button>
+        ))}
+      </nav>
     </div>
   );
 }

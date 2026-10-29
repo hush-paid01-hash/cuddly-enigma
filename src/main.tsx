@@ -4,6 +4,7 @@ import App from './App';
 import { initializeNative } from './lib/native';
 import './styles/global.css';
 import './styles/browser.css';
+import './styles/release.css';
 
 initializeNative();
 
