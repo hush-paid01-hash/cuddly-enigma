@@ -1,7 +1,7 @@
 {
-  "name": "hush — Your everyday internet",
+  "name": "hush V5 — Explore with purpose",
   "short_name": "hush",
-  "description": "Your favorite places, together in one calm space.",
+  "description": "Discover useful websites, guided task trails, and your personal Next up queue.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f8f9fc",

@@ -1,4 +1,4 @@
-# hush
+# hush V5
 
 A responsive website launcher built with React, TypeScript, and Vite. Instagram, Facebook, YouTube, LinkedIn, Pinterest, and Reddit open their real websites in new tabs. No account or backend configuration is required.
 
@@ -7,6 +7,16 @@ Search websites, filter by category, or add your own HTTP/HTTPS links. Addresses
 Use **Settings** to choose light, dark, or device appearance, pick an accent preset, or choose a custom color. Star any built-in or personal website to add it to **Your favorites**. Select **Reorder**, then use the earlier/later arrows to arrange favorites with a mouse, touch, or keyboard. Settings also lets you hide the favorites section without losing its contents or order. Appearance, favorites, and their order are saved in this browser; existing personal links are preserved. If storage is unavailable, changes still work for the current visit and a notice explains they could not be saved.
 
 **History** shows the last 50 unique destinations opened from website cards, favorites, or History itself, newest first with a local date and time. Reopening a destination moves it to the top; links still open in new tabs. This is hush activity only, not your browser’s browsing history. History is saved only in this browser. Pause recording in **Settings** (existing entries remain), or use **Clear history** and confirm to remove it. Clearing history leaves your links, favorites, and appearance intact.
+
+## V5: explore with purpose
+
+V5 keeps the chrome-inspired design from PR #6 and expands the catalog from 6 to 30 real destinations across Social, Entertainment, Work, Learn, Create, and Everyday. Search matches names, addresses, descriptions, categories, and topic keywords; multiple words narrow the results together. Existing personal links, favorite order, appearance, and history retain their storage formats.
+
+**Task trails** provide four ordered starting points: research a question, bring an idea to life, build a new skill, and make a plan. Select a trail to see its suggested sequence and destinations. Exit the trail, choose a category, or type a search to return to the wider catalog. These are curated suggestions, not tracked course progress.
+
+**Next up** is a separate queue for websites you want to try. Use the Next up button on any card, including personal links. Add a next-step note (up to 240 characters), saved as you type. Opening a destination keeps it queued and follows the existing history setting. Done removes the entry and its note without changing favorites or history. Removing a personal link also removes its queue entry. The queue uses its own local storage key, `hush-next-up-v5`; it has no account, sync, or backend. When storage fails, the current visit still works and a notice explains that changes could not be saved.
+
+All destinations open individually in new tabs. External services may offer accounts or paid plans; hush does not subscribe to or integrate with them. Be mindful of what you upload to external tools.
 
 ## Development
 
