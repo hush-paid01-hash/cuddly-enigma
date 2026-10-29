@@ -1,5 +1,6 @@
 import { Icon, PlatformIcon } from './Icons';
 import type { Site } from '../lib/sites';
+import { destinationHint } from '../lib/native';
 
 type FavoritesProps = {
   favoriteSites: Site[];
@@ -57,7 +58,7 @@ export function Favorites({
                 }}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label={`Open favorite ${site.name} (opens in a new tab)`}
+                aria-label={`Open favorite ${site.name} (${destinationHint})`}
               >
                 <span className={`platform-icon platform-${site.icon}`}>
                   <PlatformIcon name={site.icon} />

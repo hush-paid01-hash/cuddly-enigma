@@ -17,6 +17,6 @@
     "allowImportingTsExtensions": true,
     "jsx": "react-jsx"
   },
-  "include": ["src"],
+  "include": ["src", "netlify/functions", "capacitor.config.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

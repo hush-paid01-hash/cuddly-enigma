@@ -50,6 +50,28 @@
 body {
   margin: 0;
 }
+html[data-platform='ios'] body {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+html[data-platform='ios'] .sidebar {
+  padding-top: max(20px, env(safe-area-inset-top));
+}
+html[data-platform='ios'] input,
+html[data-platform='ios'] textarea {
+  font-size: 16px;
+}
+.mobile-catalog {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+}
 button,
 input {
   font: inherit;

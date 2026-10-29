@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { Icon } from './Icons';
 import { noteLimit, type resolveQueue } from '../lib/discovery';
 import type { Site } from '../lib/sites';
+import { destinationHint } from '../lib/native';
 
 type Props = {
   entries: ReturnType<typeof resolveQueue>;
@@ -45,7 +46,7 @@ export function NextUp({
                   href={site.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label={`Open ${site.name} (opens in a new tab)`}
+                  aria-label={`Open ${site.name} (${destinationHint})`}
                   onClick={() => onOpen(site)}
                   onAuxClick={(event) => {
                     if (event.button === 1) onOpen(site);
