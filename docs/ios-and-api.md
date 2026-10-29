@@ -18,6 +18,8 @@ launches but are removed when app data is deleted. There is no account or
 cross-device sync. The API receives no personal links, favorites, history, or
 notes. The existing website's local storage keys and behavior are unchanged.
 
+For device IPA artifacts and signed distribution builds, see [IPA artifact setup](ios-ipa.md).
+
 ## Build and run on iOS
 
 Use Node.js 22.18+, macOS with Xcode 26+ and its iOS simulator tools. No CocoaPods

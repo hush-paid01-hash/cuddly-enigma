@@ -11,7 +11,8 @@
     "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "dev:api": "node --experimental-strip-types scripts/dev-api.mjs",
     "ios:sync": "npm run build && cap sync ios",
-    "ios:open": "cap open ios"
+    "ios:open": "cap open ios",
+    "ios:ipa": "npm run ios:sync && bash scripts/build-ios.sh"
   },
   "dependencies": {
     "@capacitor/browser": "^8.0.5",
