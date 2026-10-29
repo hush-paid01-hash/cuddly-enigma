@@ -10,8 +10,8 @@ export type Preferences = {
 export const defaultPreferences: Preferences = {
   rememberHistory: true,
   showFavorites: true,
-  mode: 'system',
-  accent: '#9b83db',
+  mode: 'light',
+  accent: '#639ee0',
   favorites: ['instagram', 'youtube', 'linkedin'],
 };
 
