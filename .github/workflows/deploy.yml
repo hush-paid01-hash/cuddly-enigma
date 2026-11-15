@@ -1,0 +1,176 @@
+name: ESign Deployment Automation
+
+on:
+  workflow_dispatch:
+    inputs:
+      device_id:
+        description: 'Target device UUID'
+        required: false
+      build_type:
+        description: 'Build type'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+          - debug
+          - release
+
+jobs:
+  build-ipa:
+    name: Build IPA for Deployment
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Signing
+        run: |
+          # Import signing certificates
+          echo "${{ secrets.BUILD_CERTIFICATE_BASE64 }}" | base64 --decode > certificate.p12
+          echo "${{ secrets.PROVISIONING_PROFILE_BASE64 }}" | base64 --decode > profile.mobileprovision
+          
+          # Install certificate
+          security import certificate.p12 \
+            -k ~/Library/Keychains/login.keychain \
+            -P "${{ secrets.BUILD_CERTIFICATE_PASSWORD }}" \
+            -A
+          
+          # Install provisioning profile
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+      - name: Build Game Engine IPA
+        run: |
+          cd GameEngine
+          xcodebuild -scheme GameEngine \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath GameEngine.xcarchive \
+            archive
+          
+          xcodebuild -exportArchive \
+            -archivePath GameEngine.xcarchive \
+            -exportOptionsPlist ExportOptions.plist \
+            -exportPath build
+      - name: Build Game Store IPA
+        run: |
+          cd GameStore/iOS
+          xcodebuild -scheme GameStore \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath GameStore.xcarchive \
+            archive
+          
+          xcodebuild -exportArchive \
+            -archivePath GameStore.xcarchive \
+            -exportOptionsPlist ExportOptions.plist \
+            -exportPath build
+      - name: Build Retro Emulator IPA
+        run: |
+          cd RetroEmulator
+          xcodebuild -scheme RetroEmulator \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath RetroEmulator.xcarchive \
+            archive
+          
+          xcodebuild -exportArchive \
+            -archivePath RetroEmulator.xcarchive \
+            -exportOptionsPlist ExportOptions.plist \
+            -exportPath build
+      - name: Upload IPAs
+        uses: actions/upload-artifact@v3
+        with:
+          name: ipa-builds
+          path: |
+            GameEngine/build/*.ipa
+            GameStore/iOS/build/*.ipa
+            RetroEmulator/build/*.ipa
+
+  deploy-esign:
+    name: Deploy via ESign
+    runs-on: macos-latest
+    needs: build-ipa
+    steps:
+      - uses: actions/checkout@v3
+      - name: Download IPAs
+        uses: actions/download-artifact@v3
+        with:
+          name: ipa-builds
+      - name: Install ESign CLI
+        run: |
+          # Install ESign command line tool
+          brew install esign-cli
+      - name: Deploy to ESign
+        run: |
+          # Authenticate with ESign API
+          esign-cli login \
+            --api-key "${{ secrets.ESIGN_API_KEY }}" \
+            --api-secret "${{ secrets.ESIGN_API_SECRET }}"
+          
+          # Upload and sign Game Engine
+          esign-cli deploy \
+            --ipa GameEngine/build/GameEngine.ipa \
+            --apple-id "${{ secrets.APPLE_ID }}" \
+            --app-password "${{ secrets.APPLE_PASSWORD }}" \
+            --team-id "${{ secrets.TEAM_ID }}" \
+            --output GameEngine-signed.ipa
+          
+          # Upload and sign Game Store
+          esign-cli deploy \
+            --ipa GameStore/iOS/build/GameStore.ipa \
+            --apple-id "${{ secrets.APPLE_ID }}" \
+            --app-password "${{ secrets.APPLE_PASSWORD }}" \
+            --team-id "${{ secrets.TEAM_ID }}" \
+            --output GameStore-signed.ipa
+          
+          # Upload and sign Retro Emulator
+          esign-cli deploy \
+            --ipa RetroEmulator/build/RetroEmulator.ipa \
+            --apple-id "${{ secrets.APPLE_ID }}" \
+            --app-password "${{ secrets.APPLE_PASSWORD }}" \
+            --team-id "${{ secrets.TEAM_ID }}" \
+            --output RetroEmulator-signed.ipa
+      - name: Upload Signed IPAs
+        uses: actions/upload-artifact@v3
+        with:
+          name: signed-ipas
+          path: '*-signed.ipa'
+      - name: Create Installation Instructions
+        run: |
+          cat > INSTALLATION.md << 'EOF'
+          # Installation Instructions
+          
+          ## Using ESign
+          
+          1. Transfer the signed `.ipa` files to your iOS device
+          2. Open ESign app
+          3. Select the `.ipa` file
+          4. Tap "Sign"
+          5. Select your Apple ID
+          6. Tap "Install"
+          7. Wait for installation to complete
+          
+          ## Files Included
+          
+          - GameEngine-signed.ipa
+          - GameStore-signed.ipa
+          - RetroEmulator-signed.ipa
+          
+          All apps are now ready to install on your device!
+          EOF
+      - name: Upload Instructions
+        uses: actions/upload-artifact@v3
+        with:
+          name: installation-guide
+          path: INSTALLATION.md
+
+  notify-deployment:
+    name: Notify Deployment Status
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [deploy-esign]
+    steps:
+      - name: Send Success Notification
+        if: success()
+        run: echo "✅ Deployment to ESign completed successfully!"
+      - name: Send Failure Notification
+        if: failure()
+        run: echo "❌ Deployment failed. Check logs for details."

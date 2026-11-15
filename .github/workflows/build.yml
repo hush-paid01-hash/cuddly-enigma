@@ -1,0 +1,149 @@
+name: Build & Compile All Components
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  XCODE_VERSION: "14.2"
+  IOS_VERSION: "15.0"
+  SWIFT_VERSION: "5.7"
+
+jobs:
+  build-game-engine:
+    name: Build Game Engine
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+      - name: Build Game Engine
+        run: |
+          cd GameEngine
+          xcodebuild -scheme GameEngine \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            -verbose
+      - name: Generate Documentation
+        run: |
+          cd GameEngine
+          swift package generate-documentation \
+            --include-extended-types \
+            --output-path ../docs/GameEngine
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: GameEngine-build
+          path: GameEngine/build/
+
+  build-emulation-research:
+    name: Build Emulation Research Framework
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build Research Framework
+        run: |
+          cd EmulationResearch
+          swift build -v
+      - name: Build Documentation
+        run: |
+          cd EmulationResearch
+          mkdir -p ../docs/EmulationResearch
+          cp -r Docs/* ../docs/EmulationResearch/
+      - name: Upload Documentation
+        uses: actions/upload-artifact@v3
+        with:
+          name: EmulationResearch-docs
+          path: docs/EmulationResearch/
+
+  build-game-store:
+    name: Build Game Store Platform
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v1
+        with:
+          swift-version: "5.7"
+      - name: Build iOS App
+        run: |
+          cd GameStore/iOS
+          xcodebuild -scheme GameStore \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            -verbose
+      - name: Build Web Dashboard
+        run: |
+          cd GameStore/Web
+          npm install
+          npm run build
+      - name: Upload Store Build
+        uses: actions/upload-artifact@v3
+        with:
+          name: GameStore-build
+          path: GameStore/build/
+
+  build-retro-emulator:
+    name: Build NES/Game Boy Emulator
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build Retro Emulator
+        run: |
+          cd RetroEmulator
+          xcodebuild -scheme RetroEmulator \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            -verbose
+      - name: Build Test ROMs
+        run: |
+          cd RetroEmulator/TestROMs
+          ./build_tests.sh
+      - name: Upload Emulator Build
+        uses: actions/upload-artifact@v3
+        with:
+          name: RetroEmulator-build
+          path: RetroEmulator/build/
+
+  create-framework-bundle:
+    name: Create Framework Bundle
+    runs-on: macos-latest
+    needs: [build-game-engine, build-emulation-research, build-game-store, build-retro-emulator]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v3
+      - name: Create Bundle
+        run: |
+          mkdir -p ios-game-ecosystem-bundle/{GameEngine,EmulationResearch,GameStore,RetroEmulator}
+          cp -r GameEngine-build/* ios-game-ecosystem-bundle/GameEngine/
+          cp -r EmulationResearch-docs/* ios-game-ecosystem-bundle/EmulationResearch/
+          cp -r GameStore-build/* ios-game-ecosystem-bundle/GameStore/
+          cp -r RetroEmulator-build/* ios-game-ecosystem-bundle/RetroEmulator/
+      - name: Create Archive
+        run: |
+          zip -r ios-game-ecosystem.zip ios-game-ecosystem-bundle/
+      - name: Upload Complete Bundle
+        uses: actions/upload-artifact@v3
+        with:
+          name: ios-game-ecosystem-complete
+          path: ios-game-ecosystem.zip
+
+  notify-build-status:
+    name: Notify Build Status
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [build-game-engine, build-emulation-research, build-game-store, build-retro-emulator, create-framework-bundle]
+    steps:
+      - name: Check Build Status
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ All builds completed successfully!"
+            exit 0
+          else
+            echo "❌ Some builds failed. Check logs."
+            exit 1
+          fi

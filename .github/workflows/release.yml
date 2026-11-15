@@ -1,0 +1,77 @@
+name: Automated Release Creation
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  create-release:
+    name: Create GitHub Release
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Get Tag Info
+        run: |
+          echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          git log -1 --format='%B' > RELEASE_NOTES.md
+      - name: Build All Components
+        run: make build-all
+      - name: Create Artifacts
+        run: |
+          zip -r GameEngine-${VERSION}.zip GameEngine/build/
+          zip -r GameStore-${VERSION}.zip GameStore/build/
+          zip -r RetroEmulator-${VERSION}.zip RetroEmulator/build/
+          zip -r ios-game-ecosystem-${VERSION}-complete.zip .
+      - name: Generate Changelog
+        run: |
+          python3 Scripts/generate_changelog.py \
+            --version ${VERSION} \
+            --output CHANGELOG.md
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.VERSION }}
+          release_name: Release ${{ env.VERSION }}
+          body_path: RELEASE_NOTES.md
+          draft: false
+          prerelease: false
+      - name: Upload Game Engine
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./GameEngine-${{ env.VERSION }}.zip
+          asset_name: GameEngine-${{ env.VERSION }}.zip
+          asset_content_type: application/zip
+      - name: Upload Game Store
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./GameStore-${{ env.VERSION }}.zip
+          asset_name: GameStore-${{ env.VERSION }}.zip
+          asset_content_type: application/zip
+      - name: Upload Retro Emulator
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./RetroEmulator-${{ env.VERSION }}.zip
+          asset_name: RetroEmulator-${{ env.VERSION }}.zip
+          asset_content_type: application/zip
+      - name: Upload Complete Package
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./ios-game-ecosystem-${{ env.VERSION }}-complete.zip
+          asset_name: ios-game-ecosystem-${{ env.VERSION }}-complete.zip
+          asset_content_type: application/zip

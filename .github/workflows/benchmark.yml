@@ -1,0 +1,156 @@
+name: Performance Benchmarking & Reporting
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * *'  # Daily at 2 AM UTC
+  workflow_dispatch:
+
+jobs:
+  benchmark-game-engine:
+    name: Game Engine Performance
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build Benchmark Suite
+        run: |
+          cd GameEngine/Benchmarks
+          swift build -c release
+      - name: Run FPS Benchmarks
+        run: |
+          cd GameEngine/Benchmarks
+          swift run BenchmarkFPS > fps_results.txt
+      - name: Run Memory Benchmarks
+        run: |
+          cd GameEngine/Benchmarks
+          swift run BenchmarkMemory > memory_results.txt
+      - name: Run GPU Benchmarks
+        run: |
+          cd GameEngine/Benchmarks
+          swift run BenchmarkGPU > gpu_results.txt
+      - name: Parse Results
+        run: |
+          python3 Scripts/parse_benchmarks.py \
+            GameEngine/Benchmarks/*_results.txt \
+            --output benchmark_report.json
+      - name: Upload Benchmark Results
+        uses: actions/upload-artifact@v3
+        with:
+          name: benchmark-results-engine
+          path: benchmark_report.json
+
+  benchmark-retro-emulator:
+    name: Retro Emulator Performance
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build Emulator Benchmarks
+        run: |
+          cd RetroEmulator/Benchmarks
+          swift build -c release
+      - name: Benchmark NES Emulation
+        run: |
+          cd RetroEmulator/Benchmarks
+          swift run BenchmarkNES > nes_performance.txt
+      - name: Benchmark Game Boy Emulation
+        run: |
+          cd RetroEmulator/Benchmarks
+          swift run BenchmarkGameBoy > gameboy_performance.txt
+      - name: Generate Report
+        run: |
+          python3 Scripts/parse_emulator_benchmarks.py \
+            RetroEmulator/Benchmarks/*_performance.txt \
+            --output emulator_report.json
+      - name: Upload Emulator Benchmarks
+        uses: actions/upload-artifact@v3
+        with:
+          name: benchmark-results-emulator
+          path: emulator_report.json
+
+  benchmark-game-store:
+    name: Game Store Performance
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Install Dependencies
+        run: |
+          cd GameStore/Backend
+          npm install
+      - name: Run API Benchmarks
+        run: |
+          cd GameStore/Backend
+          npm run benchmark > api_performance.txt
+      - name: Upload Store Benchmarks
+        uses: actions/upload-artifact@v3
+        with:
+          name: benchmark-results-store
+          path: GameStore/Backend/api_performance.txt
+
+  generate-performance-report:
+    name: Generate Performance Report
+    runs-on: ubuntu-latest
+    needs: [benchmark-game-engine, benchmark-retro-emulator, benchmark-game-store]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Download Benchmarks
+        uses: actions/download-artifact@v3
+      - name: Create Report
+        run: |
+          python3 Scripts/generate_performance_report.py \
+            --engine benchmark-results-engine/benchmark_report.json \
+            --emulator benchmark-results-emulator/emulator_report.json \
+            --store benchmark-results-store/api_performance.txt \
+            --output performance_report.md
+      - name: Upload Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-report
+          path: performance_report.md
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('performance_report.md', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: report
+            });
+
+  compare-with-baseline:
+    name: Compare with Baseline
+    runs-on: ubuntu-latest
+    needs: [generate-performance-report]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Download Latest Report
+        uses: actions/download-artifact@v3
+        with:
+          name: performance-report
+      - name: Compare Performance
+        run: |
+          python3 Scripts/compare_benchmarks.py \
+            --baseline .benchmarks/baseline.json \
+            --current performance_report.md \
+            --threshold 5  # Alert if performance regression > 5%
+      - name: Alert if Regression
+        if: failure()
+        run: echo "⚠️ Performance regression detected!"
