@@ -44,7 +44,7 @@ jobs:
 
           for var_name in AWS_REGION S3_BUCKET; do
             if [ -z "${!var_name}" ]; then
-              echo "::warning::Missing required repository variable: $var_name"
+              echo "::warning::Missing repository variable: $var_name (AWS_S3_BUCKET for S3_BUCKET)"
               missing=true
             fi
           done
@@ -55,7 +55,7 @@ jobs:
           fi
 
           if [ "$missing" = true ]; then
-            echo "::warning::Skipping deployment until AWS configuration is complete (see README)"
+            echo "::notice::AWS deployment is not configured; skipping deploy."
             echo "configured=false" >> "$GITHUB_OUTPUT"
           else
             echo "configured=true" >> "$GITHUB_OUTPUT"
